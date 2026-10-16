@@ -1,7 +1,7 @@
 // Download links and availability. Edit here — every "Download" button follows.
 export const DOWNLOADS = {
-  mac: "https://agentiqbd.com/downloads/MyPixelGuard-mac.dmg",
-  windows: "https://agentiqbd.com/downloads/MyPixelGuard-windows-setup.exe",
+  mac: "https://mypixelguard.agentiqbd.com/downloads/MyPixelGuard-mac.dmg",
+  windows: "https://mypixelguard.agentiqbd.com/downloads/MyPixelGuard-windows-setup.exe",
 } as const;
 
 // "soon" shows a "Coming soon" badge and makes the button non-clickable.

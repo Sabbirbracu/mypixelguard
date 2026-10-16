@@ -5,7 +5,10 @@ import { emit } from "@tauri-apps/api/event";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export async function installMock() {
-  const fx: any = (await import("../../dev-fixtures/fixtures.json")).default;
+  // import.meta.glob (not a static import) so type-check and build still pass when the git-ignored fixtures are absent (CI).
+  const load = import.meta.glob("../../dev-fixtures/fixtures.json", { import: "default" })["../../dev-fixtures/fixtures.json"];
+  if (!load) throw new Error("dev-fixtures/fixtures.json is missing; the mock UI needs it");
+  const fx: any = await load();
   const names = Object.keys(fx.files);
   mockWindows("main");
   const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
