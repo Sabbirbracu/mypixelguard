@@ -1,0 +1,13 @@
+.DS_Store
+node_modules/
+dist/
+target/
+.build/
+.build-x86/
+build/
+releases/
+*.onnx
+dev-fixtures/
+src-tauri/gen/
+landing-react/.env.local
+landing-react/data/

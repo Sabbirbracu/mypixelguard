@@ -1,0 +1,3 @@
+# Only matters when building on a Mac (development): ONNX Runtime needs macOS 13.4+.
+[env]
+MACOSX_DEPLOYMENT_TARGET = "13.4"

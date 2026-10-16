@@ -1,0 +1,6 @@
+node_modules/
+dist/
+target/
+models/*.onnx
+dev-fixtures/
+src-tauri/gen/

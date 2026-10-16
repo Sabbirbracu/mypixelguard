@@ -1,0 +1,432 @@
+<!doctype html>
+<html lang="en" data-bn-title="MyPixelGuard — আপনার ছবি। আপনার প্রাইভেসি। আপনার কন্ট্রোল।">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MyPixelGuard — Your Images. Your Privacy. Your Control.</title>
+  <meta name="description" content="MyPixelGuard shows what's hiding inside your photos, removes it, blurs what shouldn't be seen and gets images ready to share. Everything runs on your own computer — nothing is uploaded.">
+  <meta name="theme-color" content="#111827">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="MyPixelGuard — Your Images. Your Privacy. Your Control.">
+  <meta property="og:description" content="Inspect, clean, redact, convert, resize and compress your images — 100% on your device.">
+  <meta property="og:image" content="assets/img/app-clean.png">
+  <link rel="icon" type="image/png" href="assets/brand/favicon-64.png">
+  <link rel="apple-touch-icon" href="assets/brand/apple-touch-icon.png">
+  <link rel="preload" href="assets/fonts/Inter-Variable-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- Icon sprite -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <symbol id="i-pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11a7 7 0 1 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></symbol>
+    <symbol id="i-camera" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></symbol>
+    <symbol id="i-tag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8.5" r="1.3"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 5-3.4 8.4-8 9-4.6-.6-8-4-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>
+    <symbol id="i-eyeoff" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l18 18"/><path d="M10.6 6.2A9.8 9.8 0 0 1 12 6c5 0 8.5 4 9.5 6-.5 1-1.6 2.6-3.2 3.9M6.4 7.7C4.4 9 3.1 10.8 2.5 12c1 2 4.5 6 9.5 6 1.4 0 2.7-.3 3.8-.8"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l5 5"/></symbol>
+    <symbol id="i-eraser" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15l9-9 7 7-6 6H8z"/><path d="M9 11l7 7"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 0 0-14-4M4 5v4h4"/><path d="M4 13a8 8 0 0 0 14 4M20 19v-4h-4"/></symbol>
+    <symbol id="i-crop" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2v16h16"/><path d="M2 6h16v16"/></symbol>
+    <symbol id="i-compress" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v7M9 7l3 3 3-3"/><path d="M12 21v-7M9 17l3-3 3 3"/><path d="M4 12h16"/></symbol>
+    <symbol id="i-layers" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></symbol>
+    <symbol id="i-wand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19L17 7"/><path d="M15 5l4 4"/><path d="M19 2v3M17.5 3.5h3M6 3v3M4.5 4.5h3"/></symbol>
+    <symbol id="i-laptop" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="11" rx="1.5"/><path d="M2 19h20"/></symbol>
+    <symbol id="i-windows" viewBox="0 0 24 24"><path fill="currentColor" d="M3 5.5l8-1.1v7H3zM12 4.3l9-1.3v8.4h-9zM3 12.6h8v7l-8-1.1zM12 12.6h9V21l-9-1.3z"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.1"/></symbol>
+    <symbol id="i-wifi-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l18 18"/><path d="M5 12.5a10 10 0 0 1 4-2.3M19 12.5a10 10 0 0 0-5.5-3M8.5 16a5 5 0 0 1 3-1.3M15.5 16a5 5 0 0 0-1-.8"/><circle cx="12" cy="19" r="1" fill="currentColor"/></symbol>
+    <symbol id="i-verify" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.7 2.7L16.5 9"/></symbol>
+    <symbol id="i-scissors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2.6"/><circle cx="6" cy="18" r="2.6"/><path d="M8 7.6l12 9.9M8 16.4l12-9.9"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="12" height="14" rx="2"/><path d="M8 21h10a2 2 0 0 0 2-2V8"/></symbol>
+  </defs>
+</svg>
+
+<header class="site-header">
+  <div class="container">
+    <a class="brand" href="#top" aria-label="MyPixelGuard home">
+      <img src="assets/brand/MyPixelGuard-Mark-Dark.svg" alt="" width="34" height="34">
+      <span>MyPixel<span class="guard">Guard</span></span>
+    </a>
+    <nav class="nav" aria-label="Main">
+      <a href="#features" data-bn="ফিচার">Features</a>
+      <a href="#how" data-bn="কীভাবে কাজ করে">How it works</a>
+      <a href="#privacy" data-bn="প্রাইভেসি">Privacy</a>
+      <a href="#faq" data-bn="প্রশ্নোত্তর">FAQ</a>
+    </nav>
+    <div class="header-actions">
+      <div class="lang" role="group" aria-label="Language">
+        <button type="button" data-lang="en" aria-pressed="true">EN</button>
+        <button type="button" data-lang="bn" aria-pressed="false">বাংলা</button>
+      </div>
+      <a class="btn btn-primary btn-sm" href="#download" data-download="mac" data-bn="ডাউনলোড করুন">Download</a>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+
+<!-- ================= HERO ================= -->
+<section class="hero" style="padding:0">
+  <div class="container hero-inner">
+    <span class="eyebrow" data-bn="প্রাইভেসি সবার আগে · সবকিছু চলে আপনার কম্পিউটারেই">Private by design · Everything runs on your computer</span>
+    <h1 data-bn="<span class=&quot;s&quot;>আপনার ছবি।</span> <span class=&quot;s accent&quot;>আপনার প্রাইভেসি।</span> <span class=&quot;s&quot;>আপনার কন্ট্রোল।</span>"><span class="s">Your Images.</span> <span class="s accent">Your Privacy.</span> <span class="s">Your Control.</span></h1>
+    <p class="lead" data-bn="আপনার ছবির ভেতরে কী কী লুকিয়ে আছে, MyPixelGuard সেটা দেখিয়ে দেয় এবং মুছে ফেলে। যা কাউকে দেখানো ঠিক না, সেটা ব্লার করে দেয়, আর শেয়ার করার জন্য ছবিটা তৈরি করে দেয় — সবকিছু আপনার নিজের কম্পিউটারেই। কিছুই আপলোড হয় না, কখনোই না।">MyPixelGuard shows what's hiding inside your photos, removes it, blurs what shouldn't be seen, and gets every image ready to share — all on your own computer. Nothing is uploaded. Ever.</p>
+    <div class="btn-row">
+      <a class="btn btn-primary" href="#download" data-download="mac"><svg aria-hidden="true"><use href="#i-laptop"/></svg><span data-bn="macOS-এর জন্য ডাউনলোড">Download for macOS</span></a>
+      <a class="btn btn-ghost" href="#download" data-download="windows"><svg aria-hidden="true"><use href="#i-windows"/></svg><span data-bn="Windows-এর জন্য ডাউনলোড">Download for Windows</span><span class="soon" data-bn="শিগগিরই আসছে">Coming soon</span></a>
+    </div>
+    <p class="fine" data-bn="macOS 13 বা তার পরের ভার্সন · Windows 10/11 শিগগিরই আসছে · English ও বাংলা">macOS 13 or later · Windows 10/11 coming soon · English &amp; বাংলা</p>
+
+    <div class="hero-visual">
+      <div class="float-card fc-1"><div class="ic"><svg aria-hidden="true"><use href="#i-pin"/></svg></div><div><b data-bn="লোকেশন পাওয়া গেছে">Location found</b><span data-bn="এই ছবির ভেতরে GPS লোকেশন লেখা আছে">GPS coordinates inside this photo</span></div></div>
+      <div class="float-card fc-2"><div class="ic"><svg aria-hidden="true"><use href="#i-eyeoff"/></svg></div><div><b data-bn="ব্লার প্রিভিউ">Blur preview</b><span data-bn="এক্সপোর্টে ঠিক যেটা দেখছেন, সেটাই পাবেন">Exactly what you'll export</span></div></div>
+      <div class="float-card fc-3"><div class="ic"><svg aria-hidden="true"><use href="#i-shield"/></svg></div><div><b data-bn="আসল ছবি একদম ঠিকঠাক">Originals untouched</b><span data-bn="নতুন কপি হিসেবে সেভ হয়">Saved as a new copy</span></div></div>
+      <div class="window">
+        <div class="window-bar"><i></i><i></i><i></i><span>MyPixelGuard</span></div>
+        <img src="assets/img/app-clean.png" width="1600" height="1041" alt="MyPixelGuard Clean tool warning that a photo contains location and identity information" data-bn-alt="MyPixelGuard-এর Clean টুল, যেখানে ছবির ভেতরে লোকেশন আর পরিচয়ের তথ্য থাকার সতর্কতা দেখানো হচ্ছে">
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= TRUST ================= -->
+<div class="trust">
+  <div class="container">
+    <ul>
+      <li><svg aria-hidden="true"><use href="#i-lock"/></svg><div><b data-bn="১০০% আপনার ডিভাইসে">100% on-device</b><span data-bn="কিছুই আপলোড হয় না">No uploads, ever</span></div></li>
+      <li><svg aria-hidden="true"><use href="#i-shield"/></svg><div><b data-bn="আসল ছবি নিরাপদ">Originals stay safe</b><span data-bn="কখনো বদলায় না, ওভাররাইটও হয় না">Never changed or overwritten</span></div></li>
+      <li><svg aria-hidden="true"><use href="#i-verify"/></svg><div><b data-bn="প্রতিটা এক্সপোর্ট যাচাই করা হয়">Every export verified</b><span data-bn="সেভ করা ফাইল আবার খুলে দেখা হয়">Saved files are read back</span></div></li>
+      <li><svg aria-hidden="true"><use href="#i-wifi-off"/></svg><div><b data-bn="ইন্টারনেট ছাড়াই চলে">Works offline</b><span data-bn="কোনো অ্যাকাউন্ট লাগে না">No account needed</span></div></li>
+    </ul>
+  </div>
+</div>
+
+<!-- ================= PROBLEM ================= -->
+<section class="on-light" id="why">
+  <div class="container">
+    <div class="section-head rv">
+      <span class="kicker" data-bn="সমস্যাটা কোথায়">The problem</span>
+      <h2 data-bn="প্রতিটা ছবি আপনার ধারণার চেয়ে অনেক বেশি কথা বলে">Every photo tells more than you think</h2>
+      <p data-bn="একটা ছবির ভেতরেই থাকতে পারে আপনি ঠিক কোথায় ছিলেন, কোন ফোনে ছবি তুলেছেন, কখন তুলেছেন, এমনকি আপনার নামও। কখনো কখনো “AI দিয়ে বানানো” লেখা ট্যাগও থাকে। যার সাথে ছবিটা শেয়ার করছেন, সে এই সবকিছুই পড়ে ফেলতে পারে।">A single picture can carry your exact location, your phone model, the time you took it, your name — and sometimes labels that mark it as AI-made. Anyone you share it with can read all of it.</p>
+    </div>
+    <div class="reveal-grid">
+      <article class="reveal-card rv"><div class="ic"><svg aria-hidden="true"><use href="#i-pin"/></svg></div><h3 data-bn="একদম ঠিক লোকেশন">Exact GPS location</h3><p data-bn="ক্যামেরা যে GPS তথ্য সেভ করে, তা থেকে বোঝা যায় আপনি কোথায় থাকেন, কোথায় কাজ করেন বা কোথায় ঘুরতে গিয়েছিলেন।">Coordinates saved by your camera can reveal where you live, work or travel.</p></article>
+      <article class="reveal-card rv"><div class="ic"><svg aria-hidden="true"><use href="#i-camera"/></svg></div><h3 data-bn="ক্যামেরা আর ডিভাইস">Camera &amp; device</h3><p data-bn="কোন ক্যামেরা, ফোন বা লেন্স দিয়ে ছবি তোলা হয়েছে — তার ব্র্যান্ড আর মডেল।">The make, model and lens of the device that took the photo.</p></article>
+      <article class="reveal-card rv"><div class="ic"><svg aria-hidden="true"><use href="#i-user"/></svg></div><h3 data-bn="নাম আর কপিরাইট">Name &amp; copyright</h3><p data-bn="ছবির ফাইলের ভেতরে লেখা থাকা ফটোগ্রাফার, মালিক আর কপিরাইটের তথ্য।">Author, owner and copyright text stored inside the file.</p></article>
+      <article class="reveal-card rv"><div class="ic"><svg aria-hidden="true"><use href="#i-tag"/></svg></div><h3 data-bn="AI ট্যাগ আর এডিটের ইতিহাস">AI labels &amp; history</h3><p data-bn="C2PA Content Credentials, XMP ট্যাগ আর এডিটের ইতিহাস — যেগুলো ফেসবুকের মতো প্ল্যাটফর্ম পড়ে নেয়।">C2PA Content Credentials, XMP tags and edit history that platforms read.</p></article>
+    </div>
+  </div>
+</section>
+
+<!-- ================= FEATURES ================= -->
+<section class="on-white" id="features">
+  <div class="container">
+    <div class="section-head rv">
+      <span class="kicker" data-bn="ফিচার">Features</span>
+      <h2 data-bn="দেখুন, মুছুন, লুকিয়ে ফেলুন — সবই আপনার নিয়মে">See it. Remove it. Hide it. On your terms.</h2>
+      <p data-bn="ছবি শেয়ার করার আগে যা যা দরকার, MyPixelGuard-এ সবই এক জায়গায়।">Everything you need before you share a picture, in one calm, focused app.</p>
+    </div>
+
+    <!-- Inspect -->
+    <div class="feature">
+      <div class="feature-copy rv">
+        <span class="tag"><span class="num">1</span><span data-bn="Inspect">Inspect</span></span>
+        <h3 data-bn="ছবির ভেতরে কী লুকিয়ে আছে, সব দেখে নিন">See everything hiding in your photo</h3>
+        <p data-bn="যেকোনো ছবি খুলুন। লুকানো তথ্যের প্রতিটা স্তর MyPixelGuard পড়ে নিয়ে সহজ ভাষায় বুঝিয়ে দেবে — কঠিন কোডের ভেতর ঘাঁটাঘাঁটির দরকার নেই।">Open any image and MyPixelGuard reads every layer of hidden data, then explains it in plain language — no hex dumps, no guesswork.</p>
+        <ul class="checks">
+          <li data-bn="<b>“শেয়ার করা কি নিরাপদ?” রিপোর্ট</b> — লোকেশন, ডিভাইস, কখন তোলা, কে তুলেছে আর কোন সফটওয়্যার — সব এক নজরে।"><b>“Safe to share?” report</b> — location, device, capture time, author and software at a glance.</li>
+          <li data-bn="<b>সব স্ট্যান্ডার্ড পড়ে</b> — EXIF, IPTC, XMP, GPS আর C2PA Content Credentials।"><b>Every standard</b> — EXIF, IPTC, XMP, GPS and C2PA Content Credentials.</li>
+          <li data-bn="<b>AI-এর চিহ্ন, সততার সাথে</b> — স্পষ্ট ইঙ্গিত দেয়, কিন্তু কোনো ভুয়া রায় দেয় না।"><b>AI-provenance evidence</b> — clear signals with honest caveats, never a false verdict.</li>
+          <li data-bn="<b>খুঁজুন, কপি করুন</b> — মেটাডেটা ফিল্টার করুন, যেকোনো মান কপি করুন, কিংবা টেক্সট ফাইল হিসেবে সেভ করে রাখুন।"><b>Search &amp; copy</b> — filter all metadata, copy values, or save it all as text.</li>
+        </ul>
+        <div class="note"><svg aria-hidden="true"><use href="#i-info"/></svg><span data-bn="এখানে যা দেখানো হয়, সেটা প্রমাণের ইঙ্গিত, চূড়ান্ত রায় নয়। মেটাডেটা না পাওয়া মানে এই না যে ছবিটা মানুষই তুলেছে।">What you see is evidence, not a verdict: finding no metadata doesn't prove a person made the image.</span></div>
+      </div>
+      <div class="feature-visual rv">
+        <div class="window"><div class="window-bar"><i></i><i></i><i></i><span>Inspect</span></div>
+          <img src="assets/img/app-inspect.png" width="1600" height="1041" loading="lazy" alt="The Inspect tool listing location, device, capture date and author found inside a photo" data-bn-alt="Inspect টুল, যেখানে ছবির ভেতরের লোকেশন, ডিভাইস, তোলার তারিখ আর নাম দেখা যাচ্ছে"></div>
+      </div>
+    </div>
+
+    <!-- Clean -->
+    <div class="feature flip">
+      <div class="feature-copy rv">
+        <span class="tag"><span class="num">2</span><span data-bn="Clean">Clean</span></span>
+        <h3 data-bn="শুধু যেটা চান, সেটাই মুছুন">Remove only what you choose</h3>
+        <p data-bn="স্পর্শকাতর তথ্য খুঁজে বের করুন, ক্লিক করে দেখুন ঠিক কী আছে, তারপর শুধু সেটাই মুছুন — চাইলে সবকিছুই। আপনার আসল ছবি একদম ছোঁয়াই হয় না।">Spot sensitive details, click to see exactly what's inside, then remove just that — or everything. Your original is never touched.</p>
+        <ul class="checks">
+          <li data-bn="<b>ক্লিক করলেই সব দেখা যায়</b> — <i>লোকেশন</i> বা <i>পরিচয়</i> শব্দটায় ক্লিক করলেই ভেতরের প্রতিটা তথ্য দেখতে পাবেন, আর সেখান থেকেই মুছে ফেলতে পারবেন।"><b>Click to reveal</b> — words like <i>location</i> and <i>identity</i> are bold and clickable. See every entry and remove it right there.</li>
+          <li data-bn="<b>পরিষ্কার টেবিল, পুরো নিয়ন্ত্রণ</b> — EXIF, XMP, IPTC, C2PA আলাদা আলাদা, সাইজসহ, আর প্রতিটার জন্য একটা সুইচ।"><b>A clear table, full control</b> — EXIF, XMP, IPTC, C2PA and more, each with its size and a simple switch.</li>
+          <li data-bn="<b>সেভ করার আগেই দেখে নিন</b> — কী মুছে যাবে আর কী থেকে যাবে, তার পরিষ্কার সারাংশ।"><b>See before you save</b> — a clear “will be removed / will be kept” summary.</li>
+          <li data-bn="<b>শুরু থেকেই নিরাপদ</b> — Content Credentials মোছার আগে আপনার অনুমতি চায়, আর পরিষ্কার করা ফাইলটা আবার স্ক্যান করে যাচাই করে।"><b>Safe by default</b> — asks before Content Credentials go, and re-scans every cleaned file.</li>
+          <li data-bn="<b>বেছে বেছে মোছা</b> — শুধু লোকেশন, ক্যামেরা, তারিখ, নাম বা সফটওয়্যারের তথ্য বাদ দিন।"><b>Selective cleaning</b> — drop only location, camera, dates, author or software.</li>
+        </ul>
+      </div>
+      <div class="feature-visual rv">
+        <div class="window"><div class="window-bar"><i></i><i></i><i></i><span>Clean</span></div>
+          <img src="assets/img/app-clean-table.png" width="1600" height="1041" loading="lazy" alt="The Clean tool's table of data types with switches, and a large Clean and Save button" data-bn-alt="Clean টুলের ডেটা টেবিল, সুইচ আর বড় “Clean & Save” বোতাম"></div>
+        <div class="overlap"><img src="assets/img/app-details.png" width="900" height="889" loading="lazy" alt="Details panel listing the exact GPS entries with a Remove location button" data-bn-alt="যে প্যানেলে GPS-এর প্রতিটা তথ্য দেখা যায়, সাথে লোকেশন মোছার বোতাম"></div>
+      </div>
+    </div>
+
+    <!-- Redact -->
+    <div class="feature">
+      <div class="feature-copy rv">
+        <span class="tag"><span class="num">3</span><span data-bn="Redact">Redact</span></span>
+        <h3 data-bn="যা দেখানো ঠিক না তা ব্লার করুন — আর নিজের চোখে দেখে নিন">Blur what shouldn't be seen — and watch it happen</h3>
+        <p data-bn="মুখ, ইমেইল, ফোন নম্বর, ঠিকানা, আইডি নম্বর — MyPixelGuard আপনার ডিভাইসেই এগুলো খুঁজে বের করে, আর এক্সপোর্টের আগেই ফলাফলটা কেমন হবে তা দেখিয়ে দেয়।">Faces, emails, phone numbers, addresses, ID numbers. MyPixelGuard finds them on your device and shows you the exact result before you export.</p>
+        <ul class="checks">
+          <li data-bn="<b>সরাসরি, নির্ভুল প্রিভিউ</b> — স্লাইডার নাড়ালেই ছবিতে আসল ব্লার, পিক্সেলেট বা কালো ঢাকনা দেখতে পাবেন।"><b>Live, exact preview</b> — see the real blur, pixelation or solid cover on the image as you move the slider.</li>
+          <li data-bn="<b>নিজে থেকেই খুঁজে নেয়</b> — মুখ আর স্পর্শকাতর লেখা আপনার কম্পিউটারেই বের করে, কিছুই আপলোড না করে।"><b>Auto-detect</b> — faces and sensitive text found right on your computer, with nothing uploaded.</li>
+          <li data-bn="<b>সিদ্ধান্ত আপনারই</b> — নম্বর দেওয়া বক্সে ক্লিক করে রাখুন বা বাদ দিন, কিংবা মাউস টেনে নিজের মতো করে অংশ বেছে নিন।"><b>Your call</b> — click a numbered box to include or skip it, or drag to draw your own.</li>
+          <li data-bn="<b>তিন রকম স্টাইল</b> — ব্লার, পিক্সেলেট বা সলিড। হালকা থেকে একদম কড়া — প্রতিটা অংশের মাপ অনুযায়ী মাত্রা ঠিক হয়।"><b>Three styles</b> — Blur, Pixelate or Solid, with Light-to-Maximum strength that adapts to each region.</li>
+          <li data-bn="<b>মেটাডেটাও পরিষ্কার</b> — এক্সপোর্ট করা কপি থেকে লোকেশন আর ক্যামেরার তথ্যও মুছে যায়।"><b>Metadata cleaned too</b> — location and camera data are removed from the exported copy.</li>
+        </ul>
+      </div>
+      <div class="feature-visual rv">
+        <div class="window"><div class="window-bar"><i></i><i></i><i></i><span>Redact</span></div>
+          <img src="assets/img/app-redact.png" width="1600" height="1041" loading="lazy" alt="The Redact tool showing blurred email, phone number and address with numbered boxes" data-bn-alt="Redact টুল, যেখানে ইমেইল, ফোন নম্বর আর ঠিকানা ব্লার করা, সাথে নম্বর দেওয়া বক্স"></div>
+      </div>
+    </div>
+
+    <!-- Compare -->
+    <div class="split" style="margin-top:128px">
+      <div class="rv">
+        <span class="kicker" data-bn="আগে আর পরে">Before &amp; after</span>
+        <h2 data-bn="টেনে দেখুন, কী কী লুকিয়ে গেল">Drag to see what disappears</h2>
+        <p data-bn="বাঁ দিকে আসল ছবি, ডান দিকে Redact করা কপি। আপনি এই কপিটাই শেয়ার করবেন, আর এক্সপোর্টেও ঠিক এটাই পাবেন।">Original on the left, redacted copy on the right. This is the copy you'll share — and exactly what you'll get when you export.</p>
+        <div class="note"><svg aria-hidden="true"><use href="#i-info"/></svg><span data-bn="ডেমোর নাম, ইমেইল আর ঠিকানা সবই বানানো।">The name, email and address in this demo are made up.</span></div>
+      </div>
+      <div class="rv">
+        <div class="compare" role="group" aria-label="Before and after redaction">
+          <img src="assets/img/card-before.jpg" width="1600" height="1000" loading="lazy" alt="Sample membership card before redaction" data-bn-alt="Redact করার আগের একটা নমুনা মেম্বারশিপ কার্ড">
+          <img class="after" src="assets/img/card-after.png" width="1600" height="1000" loading="lazy" alt="The same card after redaction, with details blurred" data-bn-alt="Redact করার পরে একই কার্ড, তথ্যগুলো ব্লার করা">
+          <span class="label l" data-bn="আগে">Before</span><span class="label r" data-bn="পরে">After</span>
+          <div class="handle"></div>
+          <input type="range" min="4" max="96" value="26" aria-label="Compare before and after">
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= TOOLS EXPLORER ================= -->
+<section class="on-light" id="tools">
+  <div class="container">
+    <div class="section-head rv">
+      <span class="kicker" data-bn="আরও টুল">More tools</span>
+      <h2 data-bn="ছবি তৈরি করে নিতে যা যা লাগে, সবই আছে">Everything you need to get images ready</h2>
+      <p data-bn="Convert, Resize, Compress, ব্যাকগ্রাউন্ড সরানো আর অটোমেশন — একই প্রাইভেসি-আগে ভাবনায়।">Convert, resize, compress, cut out backgrounds and automate — with the same privacy-first approach.</p>
+    </div>
+    <div class="explorer rv">
+      <div class="tabs" role="tablist" aria-label="Tools" aria-orientation="vertical">
+        <button class="tab" role="tab" id="t-convert" aria-selected="true" aria-controls="p-convert" type="button"><span class="ic"><svg aria-hidden="true"><use href="#i-refresh"/></svg></span><span><b data-bn="Convert">Convert</b><small data-bn="JPEG, PNG, HEIC, TIFF">JPEG, PNG, HEIC, TIFF</small></span></button>
+        <button class="tab" role="tab" id="t-resize" aria-selected="false" aria-controls="p-resize" type="button"><span class="ic"><svg aria-hidden="true"><use href="#i-crop"/></svg></span><span><b data-bn="Resize">Resize</b><small data-bn="ঠিক মাপ, শতাংশ, প্রিসেট">Exact sizes, percentages, presets</small></span></button>
+        <button class="tab" role="tab" id="t-compress" aria-selected="false" aria-controls="p-compress" type="button"><span class="ic"><svg aria-hidden="true"><use href="#i-compress"/></svg></span><span><b data-bn="Compress">Compress</b><small data-bn="ছোট ফাইল, আগে দেখে নিয়ে">Smaller files, with a preview</small></span></button>
+        <button class="tab" role="tab" id="t-bg" aria-selected="false" aria-controls="p-bg" type="button"><span class="ic"><svg aria-hidden="true"><use href="#i-scissors"/></svg></span><span><b data-bn="Remove Background">Remove Background</b><small data-bn="কোয়ালিটি না হারিয়ে">Without losing quality</small></span></button>
+        <button class="tab" role="tab" id="t-studio" aria-selected="false" aria-controls="p-studio" type="button"><span class="ic"><svg aria-hidden="true"><use href="#i-layers"/></svg></span><span><b data-bn="Batch Studio">Batch Studio</b><small data-bn="এক রেসিপি, অনেক ছবি">One recipe, many photos</small></span></button>
+        <button class="tab" role="tab" id="t-ai" aria-selected="false" aria-controls="p-ai" type="button"><span class="ic"><svg aria-hidden="true"><use href="#i-wand"/></svg></span><span><b data-bn="AI Tools">AI Tools</b><small data-bn="লোকাল, আপনার ডিভাইসেই">Local, on your device</small></span></button>
+      </div>
+      <div>
+        <div class="panel" id="p-convert" role="tabpanel" aria-labelledby="t-convert">
+          <h3 data-bn="এক ক্লিকে ফরম্যাট বদলান">Change format in one click</h3>
+          <p data-bn="JPEG, PNG আর TIFF-এর মধ্যে বদলে নিন — Mac-এ HEIC-ও, আর যেখানে সাপোর্ট আছে সেখানে WebP-ও। একটা ছবি হোক বা শ’খানেক।">Switch between JPEG, PNG and TIFF — plus HEIC on Mac and WebP where supported — for one image or hundreds.</p>
+          <ul class="checks">
+            <li data-bn="পুরো ফোল্ডার একসাথে Convert করুন">Batch convert whole folders</li>
+            <li data-bn="স্বচ্ছ (transparent) ছবির জন্য ব্যাকগ্রাউন্ডের রং বেছে নিন">Pick a background colour for transparent images</li>
+            <li data-bn="ছবির তথ্য (EXIF) রাখবেন নাকি বাদ দেবেন, আপনি ঠিক করুন">Keep or drop photo info (EXIF)</li>
+            <li data-bn="সেভ করার আগেই আনুমানিক সাইজ দেখুন">See the estimated size before saving</li>
+            <li data-bn="লসি ফরম্যাটের জন্য কোয়ালিটি বেছে নিন">Choose quality for lossy formats</li>
+            <li data-bn="ফাইলের নামের শেষে নিজের মতো সাফিক্স">Your own filename suffix</li>
+          </ul>
+          <div class="window"><div class="window-bar"><i></i><i></i><i></i><span>Convert</span></div><img src="assets/img/app-convert.png" width="1600" height="1041" loading="lazy" alt="The Convert tool with format, quality and metadata options" data-bn-alt="Convert টুল, ফরম্যাট, কোয়ালিটি আর মেটাডেটার অপশনসহ"></div>
+        </div>
+        <div class="panel" id="p-resize" role="tabpanel" aria-labelledby="t-resize" hidden>
+          <h3 data-bn="ঠিক মাপ, কয়েক সেকেন্ডেই">Exact sizes, in seconds</h3>
+          <p data-bn="ঠিক কত পিক্সেল বা কত শতাংশ চান, লিখে দিন। অনুপাত লক করে রাখুন, আর ছবিটা কীভাবে বসবে তা বেছে নিন।">Type exact pixels or a percentage, keep the aspect ratio locked, and choose how the image should fit.</p>
+          <ul class="checks">
+            <li data-bn="পিক্সেল বা শতাংশ">Pixels or percentage</li>
+            <li data-bn="Fit, Fill (ক্রপ) বা Stretch">Fit, Fill (crop) or Stretch</li>
+            <li data-bn="Instagram, Facebook, YouTube-এর প্রিসেট">Presets for Instagram, Facebook and YouTube</li>
+            <li data-bn="নিজের প্রিসেট সেভ করে রাখুন">Save your own presets</li>
+            <li data-bn="“বড় করবেন না” অপশন">A “never enlarge” option</li>
+            <li data-bn="ছবি বড় করতে গেলে আগেই সতর্ক করে দেয়">An upscale warning, so quality is never a surprise</li>
+          </ul>
+          <div class="window"><div class="window-bar"><i></i><i></i><i></i><span>Resize</span></div><img src="assets/img/app-resize.png" width="1600" height="1041" loading="lazy" alt="The Resize tool with size presets and fit options" data-bn-alt="Resize টুল, সাইজ প্রিসেট আর ফিট অপশনসহ"></div>
+        </div>
+        <div class="panel" id="p-compress" role="tabpanel" aria-labelledby="t-compress" hidden>
+          <h3 data-bn="ফাইল ছোট, ছবি প্রায় আগের মতোই">Smaller files, same story</h3>
+          <p data-bn="কোয়ালিটি স্লাইডার নাড়ুন, আগে আর পরের ছবি মিলিয়ে দেখুন, আর সাইজ ঠিক কতটা কমছে তা চোখের সামনেই দেখে নিন।">Slide the quality, compare before and after, and watch exactly how the file size changes.</p>
+          <ul class="checks">
+            <li data-bn="আগে / পরের প্রিভিউ">Before / after preview</li>
+            <li data-bn="কোয়ালিটি বনাম সাইজের চার্ট">Quality-vs-size chart</li>
+            <li data-bn="চাইলে টার্গেট সাইজ (যেমন ২০০ KB), যতটা সম্ভব সেই মাপে">Best-effort target size (e.g. 200 KB)</li>
+            <li data-bn="প্রতিটা ছবির আর মোট কতটা সাশ্রয় হলো">Savings per image and in total</li>
+            <li data-bn="একসাথে অনেক ছবি Compress, প্রগ্রেস দেখে দেখে">Batch compress with progress</li>
+            <li data-bn="লসলেস ফরম্যাটের জন্য পরিষ্কার নোট">Clear notes for lossless formats</li>
+          </ul>
+          <div class="window"><div class="window-bar"><i></i><i></i><i></i><span>Compress</span></div><img src="assets/img/app-compress.png" width="1600" height="1041" loading="lazy" alt="The Compress tool with a quality slider and before and after sizes" data-bn-alt="Compress টুল, কোয়ালিটি স্লাইডার আর আগে-পরের সাইজসহ"></div>
+        </div>
+        <div class="panel" id="p-bg" role="tabpanel" aria-labelledby="t-bg" hidden>
+          <h3 data-bn="ব্যাকগ্রাউন্ড সরান, ছবির মান নয়">Remove the background, not the quality</h3>
+          <p data-bn="ছবির মূল বিষয়টা (subject) কেটে আলাদা করুন। শুধু একটা স্বচ্ছ স্তর যোগ হয় — subject-এর রং আর রেজোলিউশন একটুও বদলায় না, আর কিছুই আপলোড হয় না।">Cut the subject out. Only a transparency layer is added — the subject’s colours and resolution are never changed, and nothing is uploaded.</p>
+          <ul class="checks">
+            <li data-bn="<b>পিক্সেলে কোনো পরিবর্তন নেই</b> — আসল ছবির রং হুবহু থেকে যায়">Subject pixels stay <b>exactly</b> as they were</li>
+            <li data-bn="PNG আর TIFF-এ <b>লসলেস</b> সেভ, মানে কোনো মান কমে না">Saved <b>losslessly</b> as PNG or TIFF</li>
+            <li data-bn="স্বচ্ছ নাকি একরঙা ব্যাকগ্রাউন্ড — আপনিই ঠিক করুন">Transparent or a solid colour — your choice</li>
+            <li data-bn="ধারগুলো কতটা নরম হবে, স্লাইডার দিয়ে ঠিক করে নিন">Edge smoothing you can tune with a slider</li>
+            <li data-bn="সেভ করার আগেই চেকারবোর্ডের ওপর আগে আর পরের ছবি দেখুন">Before / after preview on a checkerboard</li>
+            <li data-bn="একসাথে পুরো ফোল্ডার, আর আসল ছবি থাকে অক্ষত">Whole folders at once; originals untouched</li>
+          </ul>
+          <div class="window"><div class="window-bar"><i></i><i></i><i></i><span>Remove Background</span></div><img src="assets/img/app-background.png" width="1600" height="1041" loading="lazy" alt="The Remove Background tool showing a coffee mug before and after, on a transparency checkerboard" data-bn-alt="Remove Background টুল, যেখানে একটা কফি কাপের আগে আর পরের ছবি স্বচ্ছ চেকারবোর্ডের ওপর দেখা যাচ্ছে"></div>
+        </div>
+        <div class="panel" id="p-studio" role="tabpanel" aria-labelledby="t-studio" hidden>
+          <h3 data-bn="এক রেসিপি, একশো ছবি">One recipe, a hundred photos</h3>
+          <p data-bn="একবার একটা ওয়ার্কফ্লো বানিয়ে নিন — Resize, Convert বা Compress, মেটাডেটা মোছা, সেভ, যাচাই — তারপর যেকোনো ব্যাচে সেটা চালিয়ে দিন।">Build a reusable workflow once — resize, convert or compress, strip metadata, save, verify — then run it on any batch.</p>
+          <ul class="checks">
+            <li data-bn="তৈরি রেসিপি: Website Optimized, Private Share, Marketplace Ready, Social Media">Ready-made recipes: Website Optimized, Private Share, Marketplace Ready, Social Media</li>
+            <li data-bn="নিজের রেসিপি বানিয়ে সেভ করে রাখুন">Make and save your own recipes</li>
+            <li data-bn="প্রগ্রেস, ক্যান্সেল, আর যেসব ফাইল হয়নি তার তালিকা">Progress, cancel and a failed-file list</li>
+            <li data-bn="প্রতিটা আউটপুট আবার খুলে যাচাই করা হয়">Every output is read back and verified</li>
+            <li data-bn="আগের কোনো ফাইল কখনো ওভাররাইট হয় না">Existing files are never overwritten</li>
+            <li data-bn="ফলাফল কোথায় সেভ হবে, সেটা আপনিই ঠিক করেন">You choose where results are saved</li>
+          </ul>
+          <div class="window"><div class="window-bar"><i></i><i></i><i></i><span>Batch Studio</span></div><img src="assets/img/app-studio.png" width="1600" height="1041" loading="lazy" alt="Batch Studio with recipe options for resizing, compressing and cleaning many images" data-bn-alt="Batch Studio, যেখানে অনেক ছবি একসাথে Resize, Compress আর Clean করার রেসিপি দেখা যাচ্ছে"></div>
+        </div>
+        <div class="panel" id="p-ai" role="tabpanel" aria-labelledby="t-ai" hidden>
+          <h3 data-bn="স্মার্ট সাহায্য, তবু ১০০% লোকাল">Smart help, still 100% local</h3>
+          <p data-bn="আপনার ডিভাইসেই ছবি enhance, upscale আর smart crop করুন। কোনো ক্লাউড নেই, কোনো আপলোড নেই।">Enhance, upscale and smart-crop right on your device. No cloud, no upload.</p>
+          <ul class="checks">
+            <li data-bn="Auto Enhance: রং, কনট্রাস্ট আর আলো নিজে থেকেই ঠিক করে">Auto Enhance colour, contrast and exposure</li>
+            <li data-bn="ভালো মানের রিস্যাম্পলিং দিয়ে Upscale">Upscale with high-quality resampling</li>
+            <li data-bn="Smart Crop ছবির মূল বিষয়টা ফ্রেমের মধ্যে রাখে">Smart Crop keeps the subject in frame</li>
+            <li data-bn="চাইলে একই ধাপে ব্যাকগ্রাউন্ডও সরিয়ে ফেলুন">Optionally remove the background in the same run</li>
+            <li data-bn="চৌকো, পোর্ট্রেট বা ল্যান্ডস্কেপ ক্রপ">Square, portrait or landscape crops</li>
+            <li data-bn="পুরোটাই আপনার কম্পিউটারে চলে">Runs entirely on your computer</li>
+          </ul>
+          <div class="window"><div class="window-bar"><i></i><i></i><i></i><span>AI Tools</span></div><img src="assets/img/app-enhance.png" width="1600" height="1041" loading="lazy" alt="The local AI image tools: enhance, upscale, smart crop and background removal" data-bn-alt="AI Tools, যেখানে enhance, upscale, smart crop আর ব্যাকগ্রাউন্ড সরানোর অপশন আছে"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= HOW IT WORKS ================= -->
+<section class="on-white" id="how">
+  <div class="container">
+    <div class="section-head rv">
+      <span class="kicker" data-bn="কীভাবে কাজ করে">How it works</span>
+      <h2 data-bn="মাত্র তিন ধাপ। শেখার কিছু নেই।">Three steps. No learning curve.</h2>
+    </div>
+    <div class="steps">
+      <article class="step rv"><h3 data-bn="ছবি যোগ করুন">Add your images</h3><p data-bn="ছবি টেনে এনে ছেড়ে দিন, অথবা কম্পিউটার থেকে বেছে নিন। পুরো ফোল্ডারও দিতে পারবেন।">Drag them in or choose them from your computer. Whole folders work too.</p></article>
+      <article class="step rv"><h3 data-bn="টুল বেছে নিন">Pick a tool</h3><p data-bn="পাশের সাইডবার থেকে Inspect, Clean, Redact, Convert, Resize, Compress, Remove Background, Batch বা AI — যেটা লাগে সেটাই বেছে নিন।">Inspect, Clean, Redact, Convert, Resize, Compress, Remove Background, Batch or AI — straight from the sidebar.</p></article>
+      <article class="step rv"><h3 data-bn="দেখে নিয়ে সেভ করুন">Review &amp; save</h3><p data-bn="প্রিভিউ দেখুন, ফোল্ডার বেছে নিন, ব্যস। আপনার আসল ছবি যেমন ছিল, ঠিক তেমনই থাকবে।">Check the preview, choose a folder, done. Your original stays exactly as it was.</p></article>
+    </div>
+  </div>
+</section>
+
+<!-- ================= LANGUAGE ================= -->
+<section class="on-light" id="languages">
+  <div class="container split">
+    <div class="rv">
+      <span class="kicker" data-bn="সবার জন্য">Made for everyone</span>
+      <h2 data-bn="English আর বাংলা — দুটোই আছে">English &amp; বাংলা, built in</h2>
+      <p data-bn="সেটিংস থেকে পুরো অ্যাপটা English বা বাংলায় বদলে নিন। দুই ভাষাতেই লেখা সহজ আর নিজের কথার মতো।">Switch the whole app between English and বাংলা in Settings — friendly, natural wording in both.</p>
+      <div class="lang-chips"><span>English</span><span>বাংলা</span></div>
+    </div>
+    <div class="rv">
+      <div class="window"><div class="window-bar"><i></i><i></i><i></i><span>MyPixelGuard — বাংলা</span></div>
+        <img src="assets/img/app-bangla.png" width="1600" height="1041" loading="lazy" alt="The Redact tool shown in Bangla" data-bn-alt="বাংলায় Redact টুল"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= PRIVACY ================= -->
+<section class="privacy" id="privacy">
+  <div class="container">
+    <div class="section-head rv">
+      <span class="kicker" data-bn="প্রাইভেসি সবার আগে">Private by design</span>
+      <h2 data-bn="আপনার ছবি কখনো আপনার কম্পিউটারের বাইরে যায় না">Your photos never leave your computer</h2>
+      <p data-bn="MyPixelGuard-এ কোনো ক্লাউড নেই, অ্যাকাউন্ট নেই, এমনকি নেটওয়ার্কে যোগাযোগের কোডও নেই। শনাক্ত করা, ব্লার করা, Convert করা — সবকিছু আপনার ডিভাইসেই হয়।">MyPixelGuard has no cloud, no account and no network code. Detection, blurring, conversion — everything happens on your device.</p>
+    </div>
+    <div class="pledge-grid">
+      <article class="pledge rv"><div class="ic"><svg aria-hidden="true"><use href="#i-lock"/></svg></div><h3 data-bn="শুধু আপনার ডিভাইসে">On-device only</h3><p data-bn="মুখ, লেখা আর ছবির মূল বিষয় শনাক্ত করা হয় আপনার ডিভাইসেই — Mac-এ Apple Vision দিয়ে, আর Windows-এ নিজস্ব লেখা-চেনার ব্যবস্থা ও ছোট একটা অন-ডিভাইস মডেল দিয়ে।">Face, text and subject detection runs locally — Apple Vision on Mac, Windows text recognition and a small on-device model on PC.</p></article>
+      <article class="pledge rv"><div class="ic"><svg aria-hidden="true"><use href="#i-shield"/></svg></div><h3 data-bn="আসল ছবি অক্ষত">Originals untouched</h3><p data-bn="ফলাফল চলে যায় আপনার বেছে নেওয়া ফোল্ডারে। আগের কোনো ফাইল ওভাররাইট হয় না।">Results go to a folder you pick; existing files are never overwritten.</p></article>
+      <article class="pledge rv"><div class="ic"><svg aria-hidden="true"><use href="#i-verify"/></svg></div><h3 data-bn="যাচাই করা ফলাফল">Verified results</h3><p data-bn="সেভ করা প্রতিটা ফাইল আবার খুলে দেখা হয় — ফাইলটা ঠিকমতো খোলে কিনা, আর তথ্য সত্যিই মুছেছে কিনা, নিশ্চিত হওয়ার জন্য।">Each saved file is read back to confirm it opens and the data is really gone.</p></article>
+      <article class="pledge rv"><div class="ic"><svg aria-hidden="true"><use href="#i-user"/></svg></div><h3 data-bn="অ্যাকাউন্ট নেই, সাইন-আপ নেই">No account, no sign-up</h3><p data-bn="অ্যাপ খুলুন আর সরাসরি কাজ শুরু করুন।">Open the app and get to work.</p></article>
+      <article class="pledge rv"><div class="ic"><svg aria-hidden="true"><use href="#i-wifi-off"/></svg></div><h3 data-bn="অফলাইনেও তৈরি">Offline ready</h3><p data-bn="ইন্টারনেট সংযোগ লাগে না।">No internet connection needed.</p></article>
+      <article class="pledge rv"><div class="ic"><svg aria-hidden="true"><use href="#i-copy"/></svg></div><h3 data-bn="নিয়ন্ত্রণ সবসময় আপনার হাতে">You stay in charge</h3><p data-bn="Content Credentials-এর মতো স্পর্শকাতর কিছু মোছার আগে সবসময় আপনার অনুমতি চাওয়া হয়।">Sensitive removals, like Content Credentials, always ask for your confirmation first.</p></article>
+    </div>
+    <div class="honest rv"><svg aria-hidden="true"><use href="#i-info"/></svg><p data-bn="<b>সীমাবদ্ধতার কথাও সৎভাবে বলে রাখি।</b> মেটাডেটা মুছে ফেললেও পিক্সেলের ভেতর মিশে থাকা অদৃশ্য ওয়াটারমার্ক (যেমন SynthID) মোছা যায় না। আর স্বয়ংক্রিয়ভাবে খুঁজে নেওয়ার সময় মাঝে মাঝে কিছু বাদ পড়তে পারে বা ভুল জায়গা ধরা পড়তে পারে — তাই শেয়ার করার আগে একবার নিজের চোখে দেখে নেবেন।"><b>Honest limits.</b> Removing metadata can't erase invisible pixel watermarks (such as SynthID), and automatic detection can miss things or mark the wrong area — always review before you share.</p></div>
+  </div>
+</section>
+
+<!-- ================= FAQ ================= -->
+<section class="on-light" id="faq">
+  <div class="container">
+    <div class="section-head rv">
+      <span class="kicker" data-bn="প্রশ্নোত্তর">FAQ</span>
+      <h2 data-bn="যা জানতে চাইতে পারেন">Questions you might have</h2>
+    </div>
+    <div class="faq rv">
+      <details><summary data-bn="MyPixelGuard কি আমার ছবি আপলোড করে?">Does MyPixelGuard upload my photos?</summary><p data-bn="না। সবকিছু আপনার ডিভাইসেই চলে। অ্যাপে ইন্টারনেটে যোগাযোগের কোনো কোডই নেই, আর অফলাইনেও দিব্যি কাজ করে।">No. Everything runs on your device. The app contains no network code and works offline.</p></details>
+      <details><summary data-bn="আমার আসল ছবি কি বদলে যাবে?">Will it change my original image?</summary><p data-bn="কখনোই না। Clean বা Redact করা ছবি নতুন কপি হিসেবে আপনার বেছে নেওয়া ফোল্ডারে সেভ হয়। আগের কোনো ফাইলের ওপর লেখা হয় না।">Never. Cleaned and redacted images are saved as new copies in a folder you choose, and existing files are never overwritten.</p></details>
+      <details><summary data-bn="SynthID-এর মতো AI ওয়াটারমার্ক কি মুছে ফেলা যায়?">Can it remove AI watermarks like SynthID?</summary><p data-bn="না। C2PA Content Credentials আর XMP/IPTC-র AI ট্যাগের মতো মেটাডেটা-লেবেল এটা মুছতে পারে, কিন্তু পিক্সেলের ভেতরে মিশে থাকা অদৃশ্য ওয়াটারমার্ক মুছতে পারে না।">No. It removes metadata labels such as C2PA Content Credentials and AI tags in XMP/IPTC, but it can't remove invisible watermarks woven into the pixels.</p></details>
+      <details><summary data-bn="C2PA / Content Credentials কী?">What is C2PA / Content Credentials?</summary><p data-bn="ছবির ভেতরে বসানো একটা সই-করা রেকর্ড, যেটা বলে ছবিটা কীভাবে বানানো বা এডিট করা হয়েছে। Facebook আর Instagram-এর মতো প্ল্যাটফর্ম এটা পড়ে ছবিতে লেবেল বসাতে পারে। MyPixelGuard এটা দেখিয়ে দেয়, আর আপনি অনুমতি দিলে মুছে ফেলে।">A signed record embedded in an image that describes how it was made or edited. Platforms like Facebook and Instagram can read it to add labels. MyPixelGuard shows it and, with your confirmation, removes it.</p></details>
+      <details><summary data-bn="কোন কোন ফরম্যাট সাপোর্ট করে?">Which formats are supported?</summary><p data-bn="JPEG, PNG আর TIFF সব জায়গাতেই। Mac-এ HEIC পড়া আর লেখা দুটোই চলে, আর যেখানে সম্ভব সেখানে WebP। Windows-এ HEIC শুধু পড়া যায় (Windows-এ কোডেক থাকলে), লেখা যায় না।">JPEG, PNG and TIFF everywhere. On Mac you can read and write HEIC, and WebP where supported. On Windows HEIC can be read (when Windows has the codec) but not written.</p></details>
+      <details><summary data-bn="ব্যাকগ্রাউন্ড সরালে কি ছবির কোয়ালিটি কমে?">Does removing the background reduce quality?</summary><p data-bn="না। MyPixelGuard শুধু একটা স্বচ্ছ স্তর যোগ করে — subject-এর পিক্সেলের রং আর রেজোলিউশন বদলায় না। PNG বা TIFF-এ সেভ করলে কোনো কমপ্রেশনও হয় না। তবে ছবির মূল বিষয়টা কতটা ভালোভাবে ধরা পড়বে, তা ছবির ওপর নির্ভর করে — তাই সেভ করার আগে প্রিভিউটা দেখে নিন।">No. MyPixelGuard only adds a transparency layer — the subject’s pixel colours and resolution are never changed, and PNG or TIFF are saved with no compression loss. How well the subject is detected depends on the photo, so check the preview before you save.</p></details>
+      <details><summary data-bn="নিজে থেকে খুঁজে বের করা কতটা নির্ভুল?">How accurate is the automatic detection?</summary><p data-bn="বেশ ভালো, তবে একদম নিখুঁত নয় — কিছু তথ্য বাদ পড়তে পারে, বা ভুল জায়গাও ধরা পড়তে পারে। এই জন্যই এক্সপোর্টের আগে নম্বর দেওয়া প্রতিটা অংশ দেখে নিতে পারেন, আর হুবহু প্রিভিউও দেখা যায়।">Good, but not perfect: it can miss information or mark the wrong area. That's why you can review every numbered region and see an exact preview before you export.</p></details>
+      <details><summary data-bn="কোন কম্পিউটারে চলে?">Which computers does it run on?</summary><p data-bn="Mac-এ macOS 13 বা তার পরের ভার্সনে চলে। Windows 10/11 (64-bit) ভার্সন শিগগিরই আসছে। Remove Background চালাতে Mac-এ macOS 14 লাগে।">Macs running macOS 13 or later. A Windows 10/11 (64-bit) version is coming soon. On Mac, Remove Background needs macOS 14.</p></details>
+      <details><summary data-bn="কোন কোন ভাষায় পাওয়া যায়?">Which languages are available?</summary><p data-bn="English আর বাংলায়। সেটিংস থেকে যখন খুশি বদলে নিতে পারেন।">English and বাংলা. Switch any time in Settings.</p></details>
+    </div>
+  </div>
+</section>
+
+<!-- ================= CTA ================= -->
+<section class="cta" id="download">
+  <div class="container">
+    <img class="icon" src="assets/brand/app-icon-512.png" width="92" height="92" alt="MyPixelGuard app icon" loading="lazy">
+    <h2 data-bn="আপনার ছবির নিয়ন্ত্রণ নিজের হাতে নিন।">Take control of your images.</h2>
+    <p data-bn="MyPixelGuard ডাউনলোড করুন, আর দেখে নিন এতদিন আপনার ছবিগুলো কী কী তথ্য শেয়ার করে এসেছে।">Download MyPixelGuard and see what your photos have been sharing.</p>
+    <div class="btn-row">
+      <a class="btn btn-primary" href="#download" data-download="mac"><svg aria-hidden="true"><use href="#i-laptop"/></svg><span data-bn="macOS-এর জন্য ডাউনলোড">Download for macOS</span></a>
+      <a class="btn btn-ghost" href="#download" data-download="windows"><svg aria-hidden="true"><use href="#i-windows"/></svg><span data-bn="Windows-এর জন্য ডাউনলোড">Download for Windows</span><span class="soon" data-bn="শিগগিরই আসছে">Coming soon</span></a>
+    </div>
+    <p class="cta-fine" data-bn="macOS 13 বা তার পরের ভার্সন · Windows 10/11 (64-bit) শিগগিরই আসছে">macOS 13 or later · Windows 10/11 (64-bit) coming soon</p>
+  </div>
+</section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <a class="brand" href="#top"><img src="assets/brand/MyPixelGuard-Mark-Dark.svg" alt="" width="28" height="28"><span>MyPixel<span class="guard">Guard</span></span></a>
+    <nav class="foot-links" aria-label="Footer">
+      <a href="#features" data-bn="ফিচার">Features</a>
+      <a href="#privacy" data-bn="প্রাইভেসি">Privacy</a>
+      <a href="#faq" data-bn="প্রশ্নোত্তর">FAQ</a>
+      <a href="#top" data-bn="ওপরে যান">Back to top</a>
+    </nav>
+    <p data-bn="Agentiq BD-র একটি প্রোডাক্ট · © ২০২৬">A product of Agentiq BD · © 2026</p>
+  </div>
+</footer>
+
+<!-- ================= LANGUAGE GATE (shown once, right after the page loads) ================= -->
+<div class="lang-gate" id="lang-gate" role="dialog" aria-modal="true" aria-labelledby="lg-title" aria-describedby="lg-note" hidden>
+  <div class="lang-card">
+    <img src="assets/brand/MyPixelGuard-Mark-Dark.svg" alt="" width="60" height="60">
+    <h2 id="lg-title">Choose your language<span class="lg-bn" lang="bn">আপনার ভাষা বেছে নিন</span></h2>
+    <p id="lg-note">You can switch any time from the top of the page.<span class="lg-bn" lang="bn">পরে যেকোনো সময় ওপরের বাটন থেকে বদলে নিতে পারবেন।</span></p>
+    <div class="lang-options">
+      <button type="button" class="lang-opt" data-pick="en" lang="en"><span class="lo-name">English</span><span class="lo-sub">Continue in English</span></button>
+      <button type="button" class="lang-opt" data-pick="bn" lang="bn"><span class="lo-name">বাংলা</span><span class="lo-sub">বাংলায় দেখুন</span></button>
+    </div>
+  </div>
+</div>
+
+<script src="main.js"></script>
+</body>
+</html>
