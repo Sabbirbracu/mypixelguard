@@ -1,0 +1,14 @@
+# STEP 1 (HTTP only, so Let's Encrypt can issue the certificate). Added alongside default.conf.template.
+# Does not modify any existing server block.
+server {
+    listen 80;
+    server_name mypixelguard.agentiqbd.com;
+
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}

@@ -1,0 +1,56 @@
+# Builds the landing page on GitHub's machines and uploads it to the VPS (nothing is built on the server).
+# Needs the "production" environment with 4 secrets — see landing-react/deploy/DEPLOY.md.
+name: Deploy landing page
+on:
+  push:
+    branches: [main]
+    paths: ["landing-react/**", ".github/workflows/deploy-landing.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-landing
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    defaults:
+      run:
+        working-directory: landing-react
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: landing-react/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - name: Build
+        run: pnpm build
+        env:
+          VITE_VISITOR_API: https://mypixelguard.agentiqbd.com
+      - name: Upload to the server
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key && chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          # the server's key is locked to rsync inside /var/www/mypixelguard, so "site/" is relative to that folder
+          rsync -az --delete --chmod=D755,F644 \
+            -e "ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes" \
+            dist/ "$DEPLOY_USER@$DEPLOY_HOST:site/"
+      - name: Check the live site
+        run: |
+          sleep 3
+          curl -fsS https://mypixelguard.agentiqbd.com/ | grep -q "MyPixelGuard"

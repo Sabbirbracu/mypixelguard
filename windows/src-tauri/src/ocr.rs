@@ -1,11 +1,9 @@
 //! Text recognition for the Redact tool. On Windows this uses the OCR engine built into the OS
 //! (Windows.Media.Ocr) — offline, no model download. Other platforms (only used for development) have none.
 
-use mpg_core::visual::TextRecognizer;
-
 #[cfg(windows)]
 mod imp {
-    use image::{DynamicImage, GenericImageView};
+    use mpg_core::image::{DynamicImage, GenericImageView};
     use mpg_core::error::{CoreError, CoreResult};
     use mpg_core::redact::NRect;
     use mpg_core::visual::{TextLine, TextRecognizer};
@@ -80,6 +78,8 @@ pub fn available() -> bool {
 }
 
 /// Development builds on other platforms have no OCR; the UI tells the user instead of failing.
+#[cfg(not(windows))]
+use mpg_core::visual::TextRecognizer;
 #[cfg(not(windows))]
 pub struct NoOcr;
 #[cfg(not(windows))]

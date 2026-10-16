@@ -1,0 +1,54 @@
+# Lives at /opt/mypixelguard on the VPS. Separate compose project, like portfolio-api.
+# Joins pharma-erp's network ONLY so the ERP's nginx can reach these two containers by name. No host ports are published.
+# Neither container has any secret: the site is public files, the counter keeps a number.
+name: mypixelguard
+
+services:
+  web:
+    image: nginxinc/nginx-unprivileged:1.27-alpine
+    container_name: mypixelguard-web
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 128m
+    expose:
+      - "8080"
+    volumes:
+      - ./web.conf:/etc/nginx/conf.d/default.conf:ro
+      - /var/www/mypixelguard/site:/usr/share/nginx/html:ro
+      - /var/www/mypixelguard/downloads:/srv/downloads:ro
+    networks: [pharma]
+
+  counter:
+    image: node:22-alpine
+    container_name: mypixelguard-counter
+    restart: unless-stopped
+    read_only: true
+    user: "10001:10001"
+    working_dir: /app
+    command: ["node", "visitor-counter.mjs"]
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 128m
+    expose:
+      - "8787"
+    environment:
+      HOST: "0.0.0.0"          # inside the container only; nothing is published to the host
+      PORT: "8787"
+      DATA_FILE: /data/visitors.json
+      ALLOW_ORIGIN: https://mypixelguard.agentiqbd.com
+      TRUST_PROXY: "1"
+    volumes:
+      - ./counter/visitor-counter.mjs:/app/visitor-counter.mjs:ro
+      - /var/lib/mypixelguard-counter:/data
+    networks: [pharma]
+
+networks:
+  pharma:
+    external: true
+    name: pharma-erp_default
