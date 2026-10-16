@@ -19,6 +19,8 @@ pub mod resize;
 pub mod selective;
 pub mod tiff;
 pub mod visual;
+#[cfg(windows)]
+pub mod wic;
 pub mod yunet;
 
 pub use error::{CoreError, CoreResult, Note};

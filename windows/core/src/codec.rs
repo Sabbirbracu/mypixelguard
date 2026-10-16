@@ -155,7 +155,7 @@ pub fn info_from_bytes(b: &[u8]) -> CoreResult<SourceInfo> {
         }
         Err(_) => {
             #[cfg(windows)]
-            if let Some(info) = crate::wic::info(b) {
+            if let Some(info) = crate::wic::info(b, exif.clone(), icc.clone()) {
                 return Ok(info);
             }
             Err(CoreError::unreadable())
@@ -181,7 +181,7 @@ pub fn load_from_bytes(b: &[u8], max_pixel: Option<u32>) -> CoreResult<Loaded> {
         Some(Loaded { image: normalize(img), icc })
     })();
     #[cfg(windows)]
-    let decoded = decoded.or_else(|| crate::wic::decode(b));
+    let decoded = decoded.or_else(|| crate::wic::decode(b).map(|l| Loaded { image: normalize(l.image), icc: l.icc }));
     let mut loaded = decoded.ok_or_else(CoreError::unreadable)?;
     if let Some(max) = max_pixel {
         let longest = loaded.width().max(loaded.height());
