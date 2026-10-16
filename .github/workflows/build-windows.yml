@@ -3,6 +3,11 @@
 name: Build Windows installer
 on:
   workflow_dispatch:
+    inputs:
+      publish:
+        description: "Also upload the installer to mypixelguard.agentiqbd.com/downloads"
+        type: boolean
+        default: true
   push:
     tags: ["v*"]
 
@@ -43,3 +48,33 @@ jobs:
         with:
           name: MyPixelGuard-windows
           path: upload/*
+
+  # Sends the finished installer to the VPS (same locked key as the landing page: it can only write inside /var/www/mypixelguard).
+  publish:
+    needs: windows
+    if: github.event_name != 'workflow_dispatch' || inputs.publish
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: MyPixelGuard-windows
+          path: installer
+      - name: Upload to the server
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key && chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          ls -lh installer
+          rsync -az --chmod=F644 \
+            -e "ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes" \
+            installer/MyPixelGuard-windows-setup.exe "$DEPLOY_USER@$DEPLOY_HOST:downloads/"
+      - name: Check the download
+        run: curl -fsSI https://mypixelguard.agentiqbd.com/downloads/MyPixelGuard-windows-setup.exe
