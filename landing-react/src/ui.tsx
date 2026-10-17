@@ -14,10 +14,11 @@ export const storage = {
   set(k: string, v: string) { try { localStorage.setItem(k, v); } catch { /* private mode */ } },
 };
 
-export function LangProvider({ children, title = TITLE }: { children: ReactNode; title?: { en: string; bn: string } }) {
-  const [lang, setLangState] = useState<Lang>("en");
+export function LangProvider({ children, title = TITLE, fixed }: { children: ReactNode; title?: { en: string; bn: string }; fixed?: Lang }) {
+  const [lang, setLangState] = useState<Lang>(fixed ?? "en");
 
   useEffect(() => {
+    if (fixed) return;                       // pages that exist in one language only
     const forced = new URLSearchParams(location.search).get("lang");
     const saved = storage.get("mpg-lang");
     const guess: Lang = (navigator.language || "").toLowerCase().startsWith("bn") ? "bn" : "en";

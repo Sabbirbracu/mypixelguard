@@ -13,35 +13,36 @@ rmSync(join(root, "dist-ssr"), { recursive: true, force: true });
 await build({ root, logLevel: "warn" });                                                   // client → dist/
 await build({ root, logLevel: "warn", build: { ssr: "src/entry-server.tsx", outDir: "dist-ssr", emptyOutDir: true } });
 
-const { render } = await import(pathToFileURL(join(root, "dist-ssr/entry-server.js")).href);
+const { render, ROUTES, SITE } = await import(pathToFileURL(join(root, "dist-ssr/entry-server.js")).href);
 const template = readFileSync(join(root, "dist/index.html"), "utf8");
 if (!template.includes("<!--app-html-->")) throw new Error("template placeholder missing");
 
-// One static page per route. Each gets its own title, description and canonical link.
-const SITE = "https://mypixelguard.agentiqbd.com";
-const routes = [
-  { route: "home", path: "", file: "index.html" },
-  { route: "mac", path: "download/mac/", file: "download/mac/index.html",
-    title: "Download MyPixelGuard for macOS", desc: "Download MyPixelGuard for Mac (macOS 13 or later, Apple Silicon and Intel) with a step-by-step install guide. Free, works offline, nothing is uploaded." },
-  { route: "windows", path: "download/windows/", file: "download/windows/index.html",
-    title: "Download MyPixelGuard for Windows", desc: "Download MyPixelGuard for Windows 10/11 (64-bit) with a step-by-step install guide. Free, works offline, nothing is uploaded." },
-];
-for (const r of routes) {
-  let html = template.replace("<!--app-html-->", () => render(r.route));
-  if (r.title) {
-    const full = `${r.title} — MyPixelGuard`;
-    html = html
-      .replace(/<title>[^<]*<\/title>/, `<title>${full}</title>`)
-      .replace(/(<meta name="description" content=")[^"]*"/, `$1${r.desc}"`)
-      .replace(/(<meta property="og:title" content=")[^"]*"/, `$1${full}"`)
-      .replace(/(<meta property="og:description" content=")[^"]*"/, `$1${r.desc}"`)
-      .replace(/(<meta property="og:url" content=")[^"]*"/, `$1${SITE}/${r.path}"`)
-      .replace(/(<link rel="canonical" href=")[^"]*"/, `$1${SITE}/${r.path}"`);
-  }
-  const out = join(root, "dist", r.file);
+// One static page per route, each with its own title, description, canonical link, robots rule and structured data.
+const esc = (s) => s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+const today = new Date().toISOString().slice(0, 10);
+for (const r of ROUTES) {
+  let html = template.replace("<!--app-html-->", () => render(r.id));
+  const url = `${SITE}${r.path}`;
+  const full = r.id === "home" ? r.title : `${r.title} — MyPixelGuard`;
+  html = html
+    .replace(/<title>[^<]*<\/title>/, `<title>${esc(full)}</title>`)
+    .replace(/(<meta name="description" content=")[^"]*"/, `$1${esc(r.desc)}"`)
+    .replace(/(<meta property="og:title" content=")[^"]*"/, `$1${esc(full)}"`)
+    .replace(/(<meta property="og:description" content=")[^"]*"/, `$1${esc(r.desc)}"`)
+    .replace(/(<meta property="og:url" content=")[^"]*"/, `$1${url}"`)
+    .replace(/(<link rel="canonical" href=")[^"]*"/, `$1${url}"`);
+  const robots = r.noindex ? "noindex, follow" : "index, follow, max-image-preview:large";
+  const ld = r.jsonld.map((o) => `<script type="application/ld+json">${JSON.stringify(o).replace(/</g, "\\u003c")}</script>`).join("\n  ");
+  html = html.replace("</head>", `  <meta name="robots" content="${robots}">\n  ${ld}\n</head>`);
+  const out = join(root, "dist", r.path.slice(1), "index.html");
   mkdirSync(dirname(out), { recursive: true });
   writeFileSync(out, html);
 }
+
+// sitemap.xml lists only pages meant to appear in search results; robots.txt points to it.
+const urls = ROUTES.filter((r) => !r.noindex).map((r) => `  <url><loc>${SITE}${r.path}</loc><lastmod>${today}</lastmod></url>`).join("\n");
+writeFileSync(join(root, "dist/sitemap.xml"), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`);
+writeFileSync(join(root, "dist/robots.txt"), `User-agent: *\nAllow: /\nDisallow: /downloads/\nDisallow: /api/\n\nSitemap: ${SITE}/sitemap.xml\n`);
 rmSync(join(root, "dist-ssr"), { recursive: true, force: true });
 
 // Report what a visitor downloads.

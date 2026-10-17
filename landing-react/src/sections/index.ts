@@ -2,6 +2,7 @@ export { default as Header } from "./Header";
 export { default as Hero } from "./Hero";
 export { default as Trust } from "./Trust";
 export { default as Why } from "./Why";
+export { default as UseCases } from "./UseCases";
 export { default as Features } from "./Features";
 export { default as Tools } from "./Tools";
 export { default as How } from "./How";

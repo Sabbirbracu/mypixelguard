@@ -11,6 +11,14 @@ export default function Faq() {
         </div>
         <div className="faq rv">
           <details>
+            <L as="summary"  en={"How do I remove the location (GPS) from a photo?"} bn={"ছবি থেকে লোকেশন (GPS) কীভাবে মুছব?"} />
+            <L as="p"  en={"Drop the photo into MyPixelGuard and click Clean. It removes the GPS location, camera details and dates, saves a clean copy in the folder you choose, and checks the result. <a href=\"/remove-exif-data/\">See the step-by-step guide</a>."} bn={"ছবিটা MyPixelGuard-এ দিন আর Clean চাপুন। এটা GPS লোকেশন, ক্যামেরার তথ্য আর তারিখ মুছে আপনার বেছে নেওয়া ফোল্ডারে পরিষ্কার একটা কপি সেভ করে এবং ফলাফল যাচাই করে। <a href=\"/remove-exif-data/\">ধাপে ধাপে গাইড দেখুন</a>।"} />
+          </details>
+          <details>
+            <L as="summary"  en={"Is there an offline remove.bg alternative?"} bn={"remove.bg-এর মতো অফলাইন টুল আছে কি?"} />
+            <L as="p"  en={"Yes. MyPixelGuard’s Remove Background tool works entirely on your computer, with no upload and no internet. <a href=\"/remove-bg-alternative-offline/\">Read how it compares</a>."} bn={"হ্যাঁ। MyPixelGuard-এর Remove Background টুল পুরোপুরি আপনার কম্পিউটারে চলে, আপলোড বা ইন্টারনেট লাগে না। <a href=\"/remove-bg-alternative-offline/\">তুলনাটা পড়ুন</a>।"} />
+          </details>
+          <details>
             <L as="summary"  en={"Does MyPixelGuard upload my photos?"} bn={"MyPixelGuard কি আমার ছবি আপলোড করে?"} />
             <L as="p"  en={"No. Everything runs on your device. The app contains no network code and works offline."} bn={"না। সবকিছু আপনার ডিভাইসেই চলে। অ্যাপে ইন্টারনেটে যোগাযোগের কোনো কোডই নেই, আর অফলাইনেও দিব্যি কাজ করে।"} />
           </details>

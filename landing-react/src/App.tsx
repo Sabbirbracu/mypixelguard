@@ -2,20 +2,16 @@ import { LangProvider, useLang } from "./ui";
 import { usePrefetchTabImages, useReveal } from "./hooks";
 import { LangGate } from "./LangGate";
 import { SPRITE } from "./sprite";
-import { Header, Hero, Trust, Why, Features, Tools, How, Languages, Privacy, Security, Faq, Cta, Footer } from "./sections";
+import { Header, Hero, Trust, Why, UseCases, Features, Tools, How, Languages, Privacy, Security, Faq, Cta, Footer } from "./sections";
 import DownloadPage from "./DownloadPage";
+import ArticlePage from "./ArticlePage";
 import { TITLE } from "./config";
+import { ROUTES, type RouteId } from "./routes";
 
-export type Route = "home" | "mac" | "windows";
+export { routeFromPath } from "./routes";
+export type Route = RouteId;
 
-/** The site is three static pages: the landing page and one download page per platform. */
-export function routeFromPath(path: string): Route {
-  const p = path.replace(/\/+$/, "");
-  return p === "/download/mac" ? "mac" : p === "/download/windows" ? "windows" : "home";
-}
-
-export const PAGE_TITLE: Record<Route, { en: string; bn: string }> = {
-  home: TITLE,
+const DOWNLOAD_TITLE = {
   mac: { en: "Download MyPixelGuard for macOS", bn: "macOS-এর জন্য MyPixelGuard ডাউনলোড" },
   windows: { en: "Download MyPixelGuard for Windows", bn: "Windows-এর জন্য MyPixelGuard ডাউনলোড" },
 };
@@ -32,6 +28,7 @@ function Home() {
         <Hero />
         <Trust />
         <Why />
+        <UseCases />
         <Features />
         <Tools />
         <How />
@@ -48,9 +45,8 @@ function Home() {
 }
 
 export default function App({ route = "home" }: { route?: Route }) {
-  return (
-    <LangProvider title={PAGE_TITLE[route]}>
-      {route === "home" ? <Home /> : <DownloadPage platform={route} />}
-    </LangProvider>
-  );
+  if (route === "home") return <LangProvider title={TITLE}><Home /></LangProvider>;
+  if (route === "mac" || route === "windows") return <LangProvider title={DOWNLOAD_TITLE[route]}><DownloadPage platform={route} /></LangProvider>;
+  const t = `${ROUTES.find((r) => r.id === route)?.title ?? ""} — MyPixelGuard`;
+  return <LangProvider fixed="en" title={{ en: t, bn: t }}><ArticlePage id={route} /></LangProvider>;
 }
