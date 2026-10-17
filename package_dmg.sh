@@ -83,5 +83,7 @@ if [ -n "${SIGN_ID:-}" ]; then
     spctl --assess --type open --context context:primary-signature -v "$OUT" || true
   fi
 fi
+# the download page shows this fingerprint so people can verify their copy; upload it next to the .dmg
+shasum -a 256 "$OUT" | cut -d' ' -f1 > "$OUT.sha256"
 echo "Created $OUT ($(du -h "$OUT" | cut -f1))"
 shasum -a 256 "$OUT"

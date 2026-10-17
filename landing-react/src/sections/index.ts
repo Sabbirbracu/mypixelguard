@@ -7,6 +7,7 @@ export { default as Tools } from "./Tools";
 export { default as How } from "./How";
 export { default as Languages } from "./Languages";
 export { default as Privacy } from "./Privacy";
+export { default as Security } from "./Security";
 export { default as Faq } from "./Faq";
 export { default as Cta } from "./Cta";
 export { default as Footer } from "./Footer";

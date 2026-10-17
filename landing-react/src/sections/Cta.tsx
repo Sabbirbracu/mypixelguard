@@ -24,24 +24,6 @@ export default function Cta() {
           </Dl>
         </div>
         <L as="p" className="cta-fine" en={"macOS 13 or later · Windows 10/11 (64-bit)"} bn={"macOS 13 বা তার পরের ভার্সন · Windows 10/11 (64-bit)"} />
-        <div className="install">
-          <div className="install-card">
-            <L as="h3" en={"Install on Mac"} bn={"Mac-এ ইনস্টল"} />
-            <ol>
-              <L as="li" en={"Open the downloaded <b>.dmg</b> file."} bn={"ডাউনলোড হওয়া <b>.dmg</b> ফাইলটি খুলুন।"} />
-              <L as="li" en={"Drag <b>MyPixelGuard</b> into <b>Applications</b>."} bn={"<b>MyPixelGuard</b> আইকনটি <b>Applications</b>-এ টেনে আনুন।"} />
-              <L as="li" en={"First time only: if macOS says it can’t verify the app, open <b>System Settings → Privacy &amp; Security</b> and click <b>Open Anyway</b> (on older macOS: right-click the app → <b>Open</b>)."} bn={"প্রথমবার শুধু: macOS যদি বলে অ্যাপটি যাচাই করতে পারছে না, তাহলে <b>System Settings → Privacy &amp; Security</b>-এ গিয়ে <b>Open Anyway</b> চাপুন (পুরনো macOS-এ অ্যাপে right-click করে <b>Open</b>)।"} />
-            </ol>
-          </div>
-          <div className="install-card">
-            <L as="h3" en={"Install on Windows"} bn={"Windows-এ ইনস্টল"} />
-            <ol>
-              <L as="li" en={"Run the downloaded <b>Setup .exe</b> and follow the steps."} bn={"ডাউনলোড হওয়া <b>Setup .exe</b> চালান, তারপর ধাপগুলো অনুসরণ করুন।"} />
-              <L as="li" en={"If Windows shows “Windows protected your PC”, click <b>More info</b>, then <b>Run anyway</b>."} bn={"Windows যদি “Windows protected your PC” দেখায়, <b>More info</b> চেপে তারপর <b>Run anyway</b> চাপুন।"} />
-              <L as="li" en={"Open MyPixelGuard from the Start menu."} bn={"Start menu থেকে MyPixelGuard খুলুন।"} />
-            </ol>
-          </div>
-        </div>
       </div>
     </section>
   );

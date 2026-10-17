@@ -13,6 +13,7 @@ const compressible = new Set([".html", ".js", ".css", ".svg", ".woff", ".txt"]);
 
 createServer((req, res) => {
   let path = decodeURIComponent(new URL(req.url, "http://x").pathname);
+  if (!path.endsWith("/") && existsSync(join(dist, path)) && statSync(join(dist, path)).isDirectory()) { res.writeHead(301, { Location: path + "/" }); res.end(); return; }
   if (path.endsWith("/")) path += "index.html";
   let file = join(dist, path);
   if (!file.startsWith(dist) || !existsSync(file) || statSync(file).isDirectory()) { file = join(dist, "index.html"); path = "/index.html"; }

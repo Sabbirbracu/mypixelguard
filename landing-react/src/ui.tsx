@@ -1,5 +1,5 @@
 import { createContext, createElement, useCallback, useContext, useEffect, useMemo, useState, type AnchorHTMLAttributes, type ImgHTMLAttributes, type ReactNode } from "react";
-import { DOWNLOADS, STATUS, TITLE } from "./config";
+import { DOWNLOAD_PAGES, STATUS, TITLE } from "./config";
 
 export type Lang = "en" | "bn";
 
@@ -14,7 +14,7 @@ export const storage = {
   set(k: string, v: string) { try { localStorage.setItem(k, v); } catch { /* private mode */ } },
 };
 
-export function LangProvider({ children }: { children: ReactNode }) {
+export function LangProvider({ children, title = TITLE }: { children: ReactNode; title?: { en: string; bn: string } }) {
   const [lang, setLangState] = useState<Lang>("en");
 
   useEffect(() => {
@@ -27,14 +27,14 @@ export function LangProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     document.documentElement.lang = lang;
-    document.title = TITLE[lang];
+    document.title = title[lang];
     // The page is now in the right language: lift the "hold first paint" guard used for returning Bangla visitors,
     // but not before the Bengali font is ready (max ~1.2 s), so the text never visibly swaps fonts.
     const lift = () => document.documentElement.classList.remove("bn-pending");
     if (lang === "bn" && "fonts" in document) {
       Promise.race([document.fonts.load('1em "Noto Sans Bengali"', "আ"), new Promise((r) => setTimeout(r, 1200))]).then(lift, lift);
     } else lift();
-  }, [lang]);
+  }, [lang, title]);
 
   const setLang = useCallback((l: Lang) => { setLangState(l); storage.set("mpg-lang", l); }, []);
   const value = useMemo(() => ({ lang, setLang }), [lang, setLang]);
@@ -53,14 +53,14 @@ export function Pic({ alt, altBn, ...rest }: { alt: string; altBn: string } & Im
   return <img decoding="async" {...rest} alt={lang === "bn" ? altBn : alt} />;
 }
 
-/** Download button: a real link when the platform is ready, a "coming soon" badge button when it isn't. */
+/** Download button: opens that platform's download page (guide + automatic download); a "coming soon" badge when it isn't ready. */
 export function Dl({ platform, className = "", en, bn, children, ...rest }: {
   platform: "mac" | "windows"; en?: string; bn?: string; children?: ReactNode;
 } & AnchorHTMLAttributes<HTMLAnchorElement>) {
   const soon = STATUS[platform] === "soon";
   const props = soon
     ? { className: `${className} is-soon`, "aria-disabled": true as const }
-    : { className, href: DOWNLOADS[platform] };
+    : { className, href: DOWNLOAD_PAGES[platform] };
   if (en !== undefined && bn !== undefined) return <L as="a" {...props} {...(rest as Record<string, unknown>)} en={en} bn={bn} />;
   return <a {...rest} {...props}>{children}</a>;
 }

@@ -102,7 +102,9 @@ Repo → Settings → **Environments** → `production` → Deployment branches:
 `.github/workflows/deploy-landing.yml` then deploys on every push to `main` that changes `landing-react/` (or by hand from the Actions tab).
 
 ## 5. Releases (installers)
-    scp releases/MyPixelGuard-mac.dmg root@SERVER:/var/www/mypixelguard/downloads/
+Each installer has a `.sha256` file next to it (the download page reads it and shows the fingerprint). `package_dmg.sh` writes
+`releases/MyPixelGuard-mac.dmg.sha256`; the Windows workflow uploads its own. Upload the pair together.
+    scp releases/MyPixelGuard-mac.dmg releases/MyPixelGuard-mac.dmg.sha256 root@SERVER:/var/www/mypixelguard/downloads/
     scp MyPixelGuard-windows-setup.exe root@SERVER:/var/www/mypixelguard/downloads/
     ssh root@SERVER 'chown deploy-mpg:deploy-mpg /var/www/mypixelguard/downloads/* && chmod 644 /var/www/mypixelguard/downloads/*'
 

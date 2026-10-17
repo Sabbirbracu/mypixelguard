@@ -44,6 +44,8 @@ jobs:
           mkdir -p ../upload
           cp target/release/bundle/nsis/*.exe ../upload/MyPixelGuard-windows-setup.exe
           cp target/release/bundle/msi/*.msi ../upload/MyPixelGuard-windows.msi
+          # the download page shows this fingerprint so people can verify their copy
+          (cd ../upload && sha256sum MyPixelGuard-windows-setup.exe | cut -d' ' -f1 > MyPixelGuard-windows-setup.exe.sha256)
       - uses: actions/upload-artifact@v4
         with:
           name: MyPixelGuard-windows
@@ -75,6 +77,8 @@ jobs:
           ls -lh installer
           rsync -az --chmod=F644 \
             -e "ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes" \
-            installer/MyPixelGuard-windows-setup.exe "$DEPLOY_USER@$DEPLOY_HOST:downloads/"
+            installer/MyPixelGuard-windows-setup.exe installer/MyPixelGuard-windows-setup.exe.sha256 "$DEPLOY_USER@$DEPLOY_HOST:downloads/"
       - name: Check the download
-        run: curl -fsSI https://mypixelguard.agentiqbd.com/downloads/MyPixelGuard-windows-setup.exe
+        run: |
+          curl -fsSI https://mypixelguard.agentiqbd.com/downloads/MyPixelGuard-windows-setup.exe
+          curl -fsS https://mypixelguard.agentiqbd.com/downloads/MyPixelGuard-windows-setup.exe.sha256

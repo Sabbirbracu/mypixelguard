@@ -1,6 +1,6 @@
 import { renderToString } from "react-dom/server";
-import App from "./App";
+import App, { type Route } from "./App";
 
-export function render() {
-  return renderToString(<App />);
+export function render(route: Route = "home") {
+  return renderToString(<App route={route} />);
 }
