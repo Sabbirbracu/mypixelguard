@@ -36,8 +36,17 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Test the core
         run: cargo test --release -p mpg-core
+      # The app needs the Visual C++ runtime (ONNX Runtime is C++). A fresh PC doesn't have it, so ship it inside the installer.
+      - name: Collect the Visual C++ runtime
+        shell: bash
+        run: |
+          crt=$(ls -d "/c/Program Files/Microsoft Visual Studio/2022/"*/VC/Redist/MSVC/*/x64/Microsoft.VC14*.CRT | sort | tail -1)
+          echo "Using $crt"
+          mkdir -p redist
+          cp "$crt"/msvcp140*.dll "$crt"/vcruntime140*.dll "$crt"/concrt140.dll redist/
+          ls -l redist
       - name: Build installers
-        run: pnpm tauri build
+        run: pnpm tauri build --config src-tauri/tauri.redist.json
       - name: Name the installer for the website
         shell: bash
         run: |

@@ -11,3 +11,6 @@ dev-fixtures/
 src-tauri/gen/
 landing-react/.env.local
 landing-react/data/
+
+# generated launch video (38 MB) — rebuild with launch/video/make_video.py, upload to YouTube instead of committing
+launch/assets/*.mp4

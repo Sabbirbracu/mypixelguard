@@ -374,7 +374,26 @@ fn built_in_recipes() -> Vec<ImageRecipe> {
 
 // MARK: Entry point
 
+/// A release build has no console, so a startup failure would be invisible. Write it to a log and tell the user.
+fn report_fatal(what: &str) {
+    #[cfg(windows)]
+    {
+        use windows::Win32::UI::WindowsAndMessaging::{MB_ICONERROR, MB_OK, MessageBoxW};
+        use windows::core::HSTRING;
+        let log = std::env::var("LOCALAPPDATA").map(|d| format!("{d}\\MyPixelGuard\\crash.log")).unwrap_or_default();
+        if !log.is_empty() {
+            let _ = std::fs::create_dir_all(std::path::Path::new(&log).parent().unwrap());
+            let _ = std::fs::write(&log, what);
+        }
+        let text = format!("MyPixelGuard could not start.\n\n{what}\n\nDetails saved to:\n{log}");
+        unsafe { MessageBoxW(None, &HSTRING::from(text), &HSTRING::from("MyPixelGuard"), MB_OK | MB_ICONERROR) };
+    }
+    #[cfg(not(windows))]
+    eprintln!("MyPixelGuard could not start: {what}");
+}
+
 pub fn run() {
+    std::panic::set_hook(Box::new(|info| report_fatal(&info.to_string())));
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
@@ -406,5 +425,5 @@ pub fn run() {
             built_in_recipes,
         ])
         .run(tauri::generate_context!())
-        .expect("error while running MyPixelGuard");
+        .unwrap_or_else(|e| report_fatal(&e.to_string()));
 }

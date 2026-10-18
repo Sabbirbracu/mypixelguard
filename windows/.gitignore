@@ -4,3 +4,4 @@ target/
 models/*.onnx
 dev-fixtures/
 src-tauri/gen/
+redist/
