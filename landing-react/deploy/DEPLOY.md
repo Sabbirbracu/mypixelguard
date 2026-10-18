@@ -61,6 +61,10 @@ On the server:
     docker logs mypixelguard-counter --tail 5
     docker exec mypixelguard-web wget -qO- http://127.0.0.1:8080/ | head -3     # → the placeholder page
 
+### Changing the web container's own config later
+`deploy/server/web.conf` (compression, 404 handling, caching) is not deployed by CI because CI may only write into `/var/www/mypixelguard`.
+After editing it: `scp deploy/server/web.conf root@SERVER:/opt/mypixelguard/` then on the server `cd /opt/mypixelguard && docker compose restart web`.
+
 ## 3. HTTPS certificate (same two steps as portfolio-api)
 Step 1 — HTTP-only file, so Let's Encrypt can check the domain:
 

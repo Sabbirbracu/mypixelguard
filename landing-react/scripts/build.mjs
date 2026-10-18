@@ -18,6 +18,13 @@ const template = readFileSync(join(root, "dist/index.html"), "utf8");
 if (!template.includes("<!--app-html-->")) throw new Error("template placeholder missing");
 
 // One static page per route, each with its own title, description, canonical link, robots rule and structured data.
+// The stylesheet is small, so it goes straight into each page: one request less before the first paint.
+const cssLink = template.match(/<link rel="stylesheet"[^>]*href="(\/assets\/[^"]+\.css)"[^>]*>/);
+if (!cssLink) throw new Error("stylesheet link not found in the template");
+const css = readFileSync(join(root, "dist", cssLink[1]), "utf8");
+// Start downloading the main text font at once instead of waiting for the CSS to be parsed.
+const preloads = readdirSync(join(root, "dist/assets")).filter((f) => /^(Inter-Variable-latin|Sora-Bold-wordmark)-.*\.(woff2|woff)$/.test(f))
+  .map((f) => `<link rel="preload" href="/assets/${f}" as="font" type="font/${f.endsWith("woff2") ? "woff2" : "woff"}" crossorigin>`).join("\n  ");
 const esc = (s) => s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
 const today = new Date().toISOString().slice(0, 10);
 for (const r of ROUTES) {
@@ -33,11 +40,15 @@ for (const r of ROUTES) {
     .replace(/(<link rel="canonical" href=")[^"]*"/, `$1${url}"`);
   const robots = r.noindex ? "noindex, follow" : "index, follow, max-image-preview:large";
   const ld = r.jsonld.map((o) => `<script type="application/ld+json">${JSON.stringify(o).replace(/</g, "\\u003c")}</script>`).join("\n  ");
+  html = html.replace(cssLink[0], () => `${preloads}\n  <style>${css}</style>`);
   html = html.replace("</head>", `  <meta name="robots" content="${robots}">\n  ${ld}\n</head>`);
   const out = join(root, "dist", r.path.slice(1), "index.html");
   mkdirSync(dirname(out), { recursive: true });
   writeFileSync(out, html);
 }
+
+// The inlined stylesheet no longer needs its own file.
+rmSync(join(root, "dist", cssLink[1]));
 
 // sitemap.xml lists only pages meant to appear in search results; robots.txt points to it.
 const urls = ROUTES.filter((r) => !r.noindex).map((r) => `  <url><loc>${SITE}${r.path}</loc><lastmod>${today}</lastmod></url>`).join("\n");

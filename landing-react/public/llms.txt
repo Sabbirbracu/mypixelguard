@@ -1,0 +1,24 @@
+# MyPixelGuard
+
+> MyPixelGuard is a free-to-download photo metadata (EXIF) remover and image privacy toolkit for Mac and Windows. It shows what is hidden inside photos, removes it, blurs faces and private text, removes backgrounds, and converts, resizes and compresses images. Everything runs offline on the user's own computer and nothing is uploaded.
+
+It is published by Agentiq BD. The app has no network code, needs no account, and saves cleaned images as new copies without overwriting the originals.
+
+## Product
+
+- [MyPixelGuard home](https://mypixelguard.agentiqbd.com/): what the app does, its tools, and how it protects privacy
+
+## Guides
+
+- [How to remove EXIF and GPS data from photos](https://mypixelguard.agentiqbd.com/remove-exif-data/): step-by-step methods for Windows and Mac, from built-in tools to ExifTool and MyPixelGuard
+- [Best EXIF and metadata remover tools compared](https://mypixelguard.agentiqbd.com/exif-remover-alternatives/): an even-handed comparison of free and offline options, including their limits
+- [Offline background remover, a private remove.bg alternative](https://mypixelguard.agentiqbd.com/remove-bg-alternative-offline/): removing image backgrounds on your own computer without uploading
+
+## Downloads
+
+- [Download for macOS](https://mypixelguard.agentiqbd.com/download/mac/): macOS 13 or later, Apple Silicon and Intel, with install steps and a checksum
+- [Download for Windows](https://mypixelguard.agentiqbd.com/download/windows/): Windows 10 or 11 (64-bit), with install steps and a checksum
+
+## Publisher
+
+- [Agentiq BD](https://agentiqbd.com): the company behind MyPixelGuard
