@@ -8,7 +8,16 @@ It is published by Agentiq BD. The app has no network code, needs no account, an
 
 - [MyPixelGuard home](https://mypixelguard.agentiqbd.com/): what the app does, its tools, and how it protects privacy
 
+## Tools
+
+- [Metadata remover tool](https://mypixelguard.agentiqbd.com/metadata-remover-tool/): see and remove EXIF, GPS, IPTC, XMP and C2PA data, offline
+- [Background remover](https://mypixelguard.agentiqbd.com/background-remover/): lossless cut-outs on your own computer
+- [Image resizer](https://mypixelguard.agentiqbd.com/image-resizer/): exact pixels or percentage, with social media presets
+- [Image compressor](https://mypixelguard.agentiqbd.com/image-compressor/): before/after preview and target file size
+
 ## Guides
+
+- [Removing AI metadata and Content Credentials](https://mypixelguard.agentiqbd.com/remove-ai-watermark-metadata/): what can be removed (C2PA, AI tags) and what cannot (invisible watermarks such as SynthID)
 
 - [How to remove EXIF and GPS data from photos](https://mypixelguard.agentiqbd.com/remove-exif-data/): step-by-step methods for Windows and Mac, from built-in tools to ExifTool and MyPixelGuard
 - [Best EXIF and metadata remover tools compared](https://mypixelguard.agentiqbd.com/exif-remover-alternatives/): an even-handed comparison of free and offline options, including their limits

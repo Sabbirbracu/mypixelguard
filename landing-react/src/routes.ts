@@ -16,8 +16,8 @@ export interface RouteMeta {
 
 const org = { "@type": "Organization", "@id": `${SITE}/#org`, name: "Agentiq BD", url: "https://agentiqbd.com" };
 
-export const HOME_TITLE = "MyPixelGuard: Free EXIF & Photo Metadata Remover (Mac, Windows)";
-export const HOME_DESC = "Remove EXIF, GPS location and hidden metadata from photos, blur faces, remove backgrounds, convert and compress — offline on Mac and Windows. Nothing is uploaded.";
+export const HOME_TITLE = "MyPixelGuard: Free Metadata Remover Tool for Mac & Windows";
+export const HOME_DESC = "Free metadata remover tool: remove EXIF, GPS and AI metadata from photos, blur faces, remove backgrounds, resize and compress — offline on Mac and Windows.";
 
 export const ROUTES: RouteMeta[] = [
   {

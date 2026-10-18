@@ -354,6 +354,8 @@ body.lang-open { overflow: hidden; }
 .sec-card .ic svg { width: 24px; height: 24px; }
 .sec-card h3 { font-size: 1.1rem; line-height: 1.3; letter-spacing: -.012em; font-weight: 680; }
 .sec-card p { margin-top: 8px; color: var(--gray-2); font-size: .97rem; }
+.sec-more { display: inline-block; margin-top: 12px; font-weight: 600; font-size: .93rem; color: var(--orange-text); text-decoration: none; }
+.sec-more:hover { text-decoration: underline; }
 .sec-cta { margin-top: 34px; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 12px 14px; color: var(--gray-2); font-size: .98rem; }
 @media (max-width: 980px) { .sec-card { flex-basis: calc((100% - 18px) / 2); } }
 @media (max-width: 640px) { .sec-card { flex-basis: 100%; } .security, .usecases { padding: 72px 0; } }
@@ -376,6 +378,8 @@ body.lang-open { overflow: hidden; }
 .ar-wrap h2 { font-size: clamp(1.35rem, 2.4vw, 1.75rem); line-height: 1.25; letter-spacing: -.02em; font-weight: 720; margin-bottom: 14px; }
 .ar-wrap p { color: #374357; margin-top: 12px; font-size: 1.04rem; }
 .ar-wrap a { color: var(--orange-text); font-weight: 600; }
+.ar-wrap a.btn { text-decoration: none; }
+.ar-wrap a.btn-primary, .ar-wrap a.btn-outline { color: var(--navy); }
 .ar-list, .ar-steps { margin: 14px 0 0; padding-left: 1.3em; display: grid; gap: 8px; color: #374357; font-size: 1.04rem; }
 .ar-steps li::marker { font-weight: 700; color: var(--orange-deep); }
 .ar-code { margin: 14px 0 0; padding: 14px 16px; border-radius: 12px; background: var(--navy); color: #E6EDF7; overflow-x: auto; font: 500 .9rem/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
@@ -545,6 +549,10 @@ body.lang-open { overflow: hidden; }
 }
 @media (prefers-reduced-motion: reduce) { .mk-focus { animation: none; } .dl-ring-fg { transition: none; } }
 :root[lang="bn"] .dl-step h3, :root[lang="bn"] .dl-card-copy b { line-height: 1.4; font-weight: 700; letter-spacing: 0; }
+
+.foot-guides { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 8px 22px; padding-top: 18px; border-top: 1px solid rgba(255, 255, 255, .08); font-size: .88rem; }
+.foot-guides a { color: rgba(255, 255, 255, .6); text-decoration: none; }
+.foot-guides a:hover { color: #fff; }
 
 /* ---------- Visitor counter ---------- */
 .visitors { min-height: 34px; display: flex; justify-content: center; margin-bottom: 18px; }

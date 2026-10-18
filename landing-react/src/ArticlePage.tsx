@@ -49,7 +49,7 @@ export default function ArticlePage({ id }: { id: string }) {
         <section className="hero ar-hero">
           <HeroBackdrop />
           <div className="container ar-hero-in">
-            <nav className="ar-crumbs" aria-label="Breadcrumb"><a href="/">MyPixelGuard</a><span>›</span><span>Guides</span></nav>
+            <nav className="ar-crumbs" aria-label="Breadcrumb"><a href="/">MyPixelGuard</a><span>›</span><span>{a.crumb ?? "Guides"}</span></nav>
             <h1>{a.h1}</h1>
             <p className="lead">{a.intro}</p>
             <p className="ar-meta">Updated {date}</p>

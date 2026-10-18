@@ -17,10 +17,17 @@ MyPixel
           <L as="a" href="#features" en={"Features"} bn={"ফিচার"} />
           <L as="a" href="#privacy" en={"Privacy"} bn={"প্রাইভেসি"} />
           <L as="a" href="#faq" en={"FAQ"} bn={"প্রশ্নোত্তর"} />
-          <L as="a" href="/remove-exif-data/" en={"Remove EXIF data"} bn={"EXIF মুছবেন যেভাবে"} />
-          <L as="a" href="/exif-remover-alternatives/" en={"EXIF remover comparison"} bn={"EXIF রিমুভার তুলনা"} />
-          <L as="a" href="/remove-bg-alternative-offline/" en={"Offline background remover"} bn={"অফলাইন ব্যাকগ্রাউন্ড রিমুভার"} />
           <L as="a" href="#top" en={"Back to top"} bn={"ওপরে যান"} />
+        </nav>
+        <nav className="foot-guides" aria-label="Guides">
+          <a href="/metadata-remover-tool/">Metadata remover tool</a>
+          <a href="/remove-exif-data/">Remove EXIF data</a>
+          <a href="/remove-ai-watermark-metadata/">Remove AI metadata</a>
+          <a href="/background-remover/">Background remover</a>
+          <a href="/image-resizer/">Image resizer</a>
+          <a href="/image-compressor/">Image compressor</a>
+          <a href="/exif-remover-alternatives/">EXIF remover comparison</a>
+          <a href="/remove-bg-alternative-offline/">remove.bg alternative</a>
         </nav>
         <L as="p"  en={"A product of <a class=\"brand-link\" href=\"https://agentiqbd.com\" target=\"_blank\" rel=\"noopener\">Agentiq BD</a> · © 2026"} bn={"<a class=\"brand-link\" href=\"https://agentiqbd.com\" target=\"_blank\" rel=\"noopener\">Agentiq BD</a>-র একটি প্রোডাক্ট · © ২০২৬"} />
       </div>

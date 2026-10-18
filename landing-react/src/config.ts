@@ -38,6 +38,6 @@ export const STATUS: Record<"mac" | "windows", "ready" | "soon"> = { mac: "ready
 export const VISITOR_API: string = ((import.meta.env.VITE_VISITOR_API as string | undefined) ?? "").replace(/\/+$/, "");
 
 export const TITLE = {
-  en: "MyPixelGuard: Free EXIF & Photo Metadata Remover (Mac, Windows)",
+  en: "MyPixelGuard: Free Metadata Remover Tool for Mac & Windows",
   bn: "MyPixelGuard: ছবির মেটাডেটা (EXIF) রিমুভার — Mac ও Windows",
 };
