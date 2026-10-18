@@ -40,10 +40,18 @@ jobs:
       - name: Collect the Visual C++ runtime
         shell: bash
         run: |
-          crt=$(ls -d "/c/Program Files/Microsoft Visual Studio/2022/"*/VC/Redist/MSVC/*/x64/Microsoft.VC14*.CRT | sort | tail -1)
+          # Find Visual Studio wherever this runner image put it (the year/edition folder changes between images).
+          vs=$("/c/Program Files (x86)/Microsoft Visual Studio/Installer/vswhere.exe" -latest -products '*' -property installationPath | tr -d '\r')
+          echo "Visual Studio: $vs"
+          crt=""
+          if [ -n "$vs" ]; then
+            crt=$(find "$(cygpath -u "$vs")/VC/Redist/MSVC" -type d -path '*/x64/Microsoft.VC*.CRT' 2>/dev/null | sort | tail -1)
+          fi
+          # Fallback: the runtime already installed in Windows itself
+          if [ -z "$crt" ]; then crt="/c/Windows/System32"; fi
           echo "Using $crt"
           mkdir -p redist
-          cp "$crt"/msvcp140*.dll "$crt"/vcruntime140*.dll "$crt"/concrt140.dll redist/
+          cp "$crt"/msvcp140.dll "$crt"/msvcp140_1.dll "$crt"/vcruntime140.dll "$crt"/vcruntime140_1.dll redist/
           ls -l redist
       - name: Build installers
         run: pnpm tauri build --config src-tauri/tauri.redist.json
