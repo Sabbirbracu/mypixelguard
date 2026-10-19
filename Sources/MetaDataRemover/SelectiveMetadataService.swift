@@ -14,6 +14,15 @@ enum PrivateMetadataField: String, CaseIterable, Identifiable, Hashable {
         }
     }
 
+    /// True when removing these whole metadata blocks already wipes this field, so no separate pass is needed.
+    func isCovered(by remove: Set<MetaCategory>) -> Bool {
+        switch self {
+        case .location, .device: return remove.contains(.exif)
+        case .author:            return remove.contains(.exif) && remove.contains(.xmp) && remove.contains(.iptc)
+        case .dates, .software:  return remove.contains(.exif) && remove.contains(.xmp)
+        }
+    }
+
     /// Whether a metadata key (lower-cased, letters and digits only) belongs to this field.
     /// Location is handled separately because it removes the whole GPS dictionary.
     func matches(normalizedKey key: String) -> Bool {

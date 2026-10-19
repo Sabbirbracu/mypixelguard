@@ -327,11 +327,26 @@ body.lang-open { overflow: hidden; }
   radial-gradient(900px 380px at 50% 104%, rgba(255, 122, 0, .16), transparent 72%); }
 /* fine grid, strongest under the headline and gone toward the edges */
 .hb-grid { position: absolute; inset: 0 0 auto 0; height: 760px;
-  background-image: linear-gradient(rgba(255, 255, 255, .07) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, .07) 1px, transparent 1px);
+  background-image: linear-gradient(rgba(255, 255, 255, .055) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, .055) 1px, transparent 1px);
   background-size: 64px 64px; background-position: center top;
   -webkit-mask-image: radial-gradient(ellipse 60% 70% at 50% 30%, #000 0%, transparent 75%); mask-image: radial-gradient(ellipse 60% 70% at 50% 30%, #000 0%, transparent 75%); }
 .hb-arc { position: absolute; left: 0; top: 0; width: 100%; height: 420px; }
-@media (max-width: 680px) { .hb-grid { height: 520px; background-size: 44px 44px; } .hb-arc { height: 300px; } }
+/* lit grid cells ("pixels"): centred, never scaled, so they line up with .hb-grid */
+.hb-pixels { position: absolute; top: 0; left: 50%; transform: translateX(-50%); transform-origin: 50% 0; max-width: none;
+  -webkit-mask-image: linear-gradient(180deg, #000 55%, transparent 100%); mask-image: linear-gradient(180deg, #000 55%, transparent 100%); }
+.hb-pixels .tw { animation: hb-twinkle 7s ease-in-out infinite; }
+.hb-pixels .tw2 { animation-delay: -1.8s; animation-duration: 8.5s; }
+.hb-pixels .tw3 { animation-delay: -3.6s; animation-duration: 6.2s; }
+.hb-pixels .tw4 { animation-delay: -5.1s; animation-duration: 9.4s; }
+@keyframes hb-twinkle { 0%, 100% { opacity: .08; } 50% { opacity: .75; } }
+/* a soft scan line that drifts down over the pixels, like the image being read */
+.hb-scan { position: absolute; left: 0; right: 0; top: 0; height: 2px; opacity: 0;
+  background: linear-gradient(90deg, transparent 4%, rgba(255, 170, 90, .55) 22%, rgba(255, 170, 90, .08) 42%, rgba(255, 170, 90, .08) 58%, rgba(255, 170, 90, .55) 78%, transparent 96%);
+  box-shadow: 0 0 22px 6px rgba(255, 122, 0, .16); animation: hb-scan 9s cubic-bezier(.45, 0, .55, 1) infinite; }
+@keyframes hb-scan { 0% { transform: translateY(40px); opacity: 0; } 12% { opacity: 1; } 70% { opacity: .8; } 100% { transform: translateY(640px); opacity: 0; } }
+@media (max-width: 680px) { .hb-grid { height: 520px; background-size: 44px 44px; } .hb-arc { height: 300px; }
+  .hb-pixels { transform: translateX(-50%) scale(.6875); } @keyframes hb-scan { 0% { transform: translateY(30px); opacity: 0; } 12% { opacity: 1; } 100% { transform: translateY(460px); opacity: 0; } } }
+@media (prefers-reduced-motion: reduce) { .hb-pixels .tw, .hb-scan { animation: none; } }
 
 /* the middle line of the headline is the one that matters, so it is set larger */
 .hero h1 .accent { font-size: 1.2em; line-height: 1.02; letter-spacing: -.038em; text-shadow: 0 0 42px rgba(255, 122, 0, .38); }

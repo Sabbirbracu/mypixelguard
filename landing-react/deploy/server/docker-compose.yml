@@ -43,6 +43,8 @@ services:
       DATA_FILE: /data/visitors.json
       ALLOW_ORIGIN: https://mypixelguard.agentiqbd.com
       TRUST_PROXY: "1"
+      # Optional: lets you read app stats + feedback at /api/app/summary. Put ADMIN_TOKEN=<long random> in /opt/mypixelguard/.env
+      ADMIN_TOKEN: ${ADMIN_TOKEN:-}
     volumes:
       - ./counter/visitor-counter.mjs:/app/visitor-counter.mjs:ro
       - /var/lib/mypixelguard-counter:/data

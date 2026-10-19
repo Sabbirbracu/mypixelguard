@@ -14,3 +14,7 @@ landing-react/data/
 
 # generated launch video (38 MB) — rebuild with launch/video/make_video.py, upload to YouTube instead of committing
 launch/assets/*.mp4
+
+# Video files are local assets and should not be committed
+*.mov
+*.mp4

@@ -1,0 +1,12 @@
+{
+  "mac": {
+    "version": "1.0",
+    "url": "https://mypixelguard.agentiqbd.com/download/mac/",
+    "notes": { "en": "", "bn": "" }
+  },
+  "windows": {
+    "version": "1.0",
+    "url": "https://mypixelguard.agentiqbd.com/download/windows/",
+    "notes": { "en": "", "bn": "" }
+  }
+}

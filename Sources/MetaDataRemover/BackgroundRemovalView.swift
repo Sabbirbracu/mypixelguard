@@ -127,7 +127,7 @@ struct BackgroundRemovalView: View {
 }
 
 /// Neutral transparency grid, readable in light and dark mode.
-private struct Checkerboard: View {
+struct Checkerboard: View {
     var body: some View {
         Canvas { context, size in
             let cell: CGFloat = 12

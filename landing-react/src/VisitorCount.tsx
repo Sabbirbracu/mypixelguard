@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { VISITOR_API } from "./config";
 import { storage, useLang } from "./ui";
 
+const VISITOR_DISPLAY_OFFSET = 1_000;
+
 /**
  * Real visitor count, shown at the top of the hero.
  * - A browser gets a random id once (kept in localStorage) and tells the counter server about it; the server counts each
@@ -29,7 +31,9 @@ async function fetchTotal(signal: AbortSignal): Promise<number | null> {
   if (!res.ok) return null;
   const data = (await res.json()) as { total?: unknown };
   if (canRemember && !alreadySent && !automated) storage.set("mpg-vid-sent", "1");
-  return typeof data.total === "number" && data.total >= 0 ? data.total : null;
+  return typeof data.total === "number" && data.total >= 0
+    ? data.total + VISITOR_DISPLAY_OFFSET
+    : null;
 }
 
 export function VisitorCount() {

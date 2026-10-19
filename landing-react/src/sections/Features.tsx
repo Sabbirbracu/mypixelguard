@@ -87,10 +87,10 @@ export default function Features() {
                 </i>
                 <span>Clean</span>
               </div>
-              <Pic src={img_app_clean_table_webp} width={1600} height={1041} loading="lazy" alt={"The Clean tool's table of data types with switches, and a large Clean and Save button"} altBn={"Clean টুলের ডেটা টেবিল, সুইচ আর বড় “Clean & Save” বোতাম"} />
+              <Pic src={img_app_clean_table_webp} width={1600} height={1298} loading="lazy" alt={"The Clean tool with switches for each kind of hidden data, a change summary and a large Clean and Save button"} altBn={"Clean টুল, প্রতিটা লুকানো তথ্যের জন্য সুইচ, কী বদলাবে তার তালিকা আর বড় “Clean & Save” বোতাম"} />
             </div>
             <div className="overlap">
-              <Pic src={img_app_details_webp} width={900} height={889} loading="lazy" alt={"Details panel listing the exact GPS entries with a Remove location button"} altBn={"যে প্যানেলে GPS-এর প্রতিটা তথ্য দেখা যায়, সাথে লোকেশন মোছার বোতাম"} />
+              <Pic src={img_app_details_webp} width={900} height={994} loading="lazy" alt={"Privacy findings listing the GPS location, camera, capture date and author found in a photo"} altBn={"Privacy findings, যেখানে ছবির GPS লোকেশন, ক্যামেরা, তোলার তারিখ আর নাম দেখা যাচ্ছে"} />
             </div>
           </div>
         </div>
@@ -124,7 +124,7 @@ export default function Features() {
                 </i>
                 <span>Redact</span>
               </div>
-              <Pic src={img_app_redact_webp} width={1600} height={1041} loading="lazy" alt={"The Redact tool showing blurred email, phone number and address with numbered boxes"} altBn={"Redact টুল, যেখানে ইমেইল, ফোন নম্বর আর ঠিকানা ব্লার করা, সাথে নম্বর দেওয়া বক্স"} />
+              <Pic src={img_app_redact_webp} width={1600} height={1041} loading="lazy" alt={"The Redact tool showing a blurred email, phone numbers and address with numbered regions to include or skip"} altBn={"Redact টুল, যেখানে ইমেইল, ফোন নম্বর আর ঠিকানা ব্লার করা, সাথে নম্বর দেওয়া বক্স"} />
             </div>
           </div>
         </div>

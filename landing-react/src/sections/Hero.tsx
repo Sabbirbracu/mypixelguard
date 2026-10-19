@@ -75,7 +75,7 @@ export default function Hero() {
               </i>
               <span>MyPixelGuard</span>
             </div>
-            <Pic src={img_app_clean_webp} srcSet={`${img_app_clean_800} 800w, ${img_app_clean_webp} 1600w`} sizes="(max-width: 1200px) 94vw, 1100px" width={1600} height={1041} fetchPriority="high" alt={"MyPixelGuard Clean tool warning that a photo contains location and identity information"} altBn={"MyPixelGuard-এর Clean টুল, যেখানে ছবির ভেতরে লোকেশন আর পরিচয়ের তথ্য থাকার সতর্কতা দেখানো হচ্ছে"} />
+            <Pic src={img_app_clean_webp} srcSet={`${img_app_clean_800} 800w, ${img_app_clean_webp} 1600w`} sizes="(max-width: 1200px) 94vw, 1100px" width={1600} height={1041} fetchPriority="high" alt={"MyPixelGuard Clean tool showing the GPS location found in a photo and the five hidden items it will remove"} altBn={"MyPixelGuard-এর Clean টুল, যেখানে ছবির ভেতরে লোকেশন আর পরিচয়ের তথ্য থাকার সতর্কতা দেখানো হচ্ছে"} />
           </div>
         </div>
       </div>

@@ -4,5 +4,7 @@
 <dict>
     <key>com.apple.security.app-sandbox</key><true/>
     <key>com.apple.security.files.user-selected.read-write</key><true/>
+    <!-- version check, weekly anonymous stats (only if allowed), and feedback the user sends -->
+    <key>com.apple.security.network.client</key><true/>
 </dict>
 </plist>

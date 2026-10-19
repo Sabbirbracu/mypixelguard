@@ -99,6 +99,6 @@ enum ImageCompressionService {
             }
         }
         return Preview(processed: processed, originalBytes: info.fileSize,
-                       thumbnail: ImageCodec.thumbnail(of: processed.data, maxPixel: 560), curve: curve)
+                       thumbnail: ImageCodec.thumbnail(of: processed.data, maxPixel: 900), curve: curve)
     }
 }

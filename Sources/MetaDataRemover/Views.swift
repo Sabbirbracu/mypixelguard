@@ -14,6 +14,7 @@ func severityColor(for severity: Severity?) -> Color {
 struct ContentView: View {
     @EnvironmentObject var model: AppModel
     @EnvironmentObject var lang: LanguageManager
+    @ObservedObject private var services = AppServices.shared
     @State private var dropTargeted = false
 
     var body: some View {
@@ -55,6 +56,9 @@ struct ContentView: View {
         }
         // Rebuild the window content when the language changes so every string is looked up again.
         .id(lang.code)
+        .task { await AppServices.shared.appLaunched() }
+        .sheet(isPresented: $services.showConsent) { UsageConsentSheet() }
+        .sheet(isPresented: $services.showFeedback) { FeedbackSheet() }
     }
 }
 
@@ -84,6 +88,7 @@ struct NavSidebar: View {
             Spacer(minLength: 12)
 
             VStack(alignment: .leading, spacing: 10) {
+                UpdateBanner()
                 HStack(alignment: .top, spacing: 9) {
                     Image(systemName: "lock.shield.fill")
                         .foregroundStyle(Theme.success)
@@ -394,6 +399,7 @@ struct FileListColumn: View {
 
 extension FileItem {
     var isCleaned: Bool { if case .cleaned = status { return true } else { return false } }
+    var isFailed: Bool { if case .failed = status { return true } else { return false } }
 }
 
 struct FileRow: View {
@@ -478,52 +484,35 @@ struct DetailView: View {
     }
 }
 
-private enum DetailTab: String, CaseIterable, Identifiable {
-    case findings, metadata
-    var id: String { rawValue }
-    var title: String { t("tab.\(rawValue)") }
-}
-
 struct ItemDetail: View {
     @EnvironmentObject var model: AppModel
     let item: FileItem
     let mode: DetailMode
-    @State private var tab: DetailTab = .findings
+    @State private var tab: InspectTab = .overview
     @State private var query = ""
 
     var body: some View {
         VStack(spacing: 0) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    ToolHeader(title: t(mode == .inspect ? "inspect.title" : "clean.title"),
-                               subtitle: t(mode == .inspect ? "inspect.subtitle" : "clean.subtitle"))
-                    header
-
                     switch item.status {
                     case .scanning:
                         ProgressView(t("detail.reading")).frame(maxWidth: .infinity).padding(48)
                     default:
                         if let a = item.analysis {
-                            StatusBanner(item: item, analysis: a)
                             switch mode {
                             case .inspect:
-                                Picker("", selection: $tab) {
-                                    ForEach(DetailTab.allCases) { Text($0.title).tag($0) }
-                                }
-                                .pickerStyle(.segmented)
-                                .labelsHidden()
-                                .frame(maxWidth: 420)
-
+                                InspectTabBar(tab: $tab, reviewCount: a.reviewCount)
                                 switch tab {
-                                case .findings: FindingsTab(item: item, analysis: a)
+                                case .overview: InspectOverview(item: item, analysis: a)
                                 case .metadata: MetadataSection(item: item, analysis: a, query: $query)
                                 }
                             case .clean:
+                                CleanFileCard(item: item, analysis: a)
+                                if item.isCleaned || item.isFailed { StatusBanner(item: item, analysis: a) }
                                 if let batch = model.batch, batch.tool == .clean { BatchView(batch: batch) }
-                                RemovalPreview(analysis: a)
-                                OptionsTab(analysis: a)
+                                CleanOptions(item: item, analysis: a)
                             }
-                            footnote
                         } else if case .failed(let message) = item.status {
                             Label(message, systemImage: "xmark.octagon.fill").foregroundStyle(Theme.danger).card()
                         } else if let reason = item.analysisError {
@@ -532,12 +521,13 @@ struct ItemDetail: View {
                     }
                 }
                 .padding(.horizontal, 32).padding(.vertical, 28)
-                .frame(maxWidth: 1040)
+                .frame(maxWidth: mode == .inspect ? 1100 : 1040)
                 .frame(maxWidth: .infinity)
             }
 
+            if mode == .inspect, item.analysis != nil, !isScanning { InspectFooter() }
             if mode == .clean, let a = item.analysis, !isScanning {
-                ActionBar(item: item, analysis: a)
+                CleanFooter(item: item, analysis: a)
             }
         }
     }
@@ -545,48 +535,6 @@ struct ItemDetail: View {
     private var isScanning: Bool {
         if case .scanning = item.status { return true }
         return false
-    }
-
-    private var header: some View {
-        HStack(alignment: .center, spacing: 16) {
-            Group {
-                if let thumb = item.thumb {
-                    Image(nsImage: thumb).resizable().scaledToFit()
-                } else {
-                    Rectangle().fill(.quaternary)
-                }
-            }
-            .frame(width: 76, height: 76)
-            .background(Color.black.opacity(0.05))
-            .clipShape(RoundedRectangle(cornerRadius: 10))
-            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Theme.border))
-
-            VStack(alignment: .leading, spacing: 6) {
-                Text(item.url.lastPathComponent)
-                    .font(.headline)
-                    .lineLimit(1)
-                    .textSelection(.enabled)
-                if let a = item.analysis {
-                    HStack(spacing: 6) {
-                        Chip(text: a.kind.rawValue)
-                        Chip(text: "\(a.width) × \(a.height)")
-                        Chip(text: byteString(a.fileSize))
-                    }
-                }
-                Button(t("action.showInFinder")) { NSWorkspace.shared.activateFileViewerSelecting([item.url]) }
-                    .buttonStyle(.link)
-                    .font(.callout)
-            }
-            Spacer(minLength: 0)
-        }
-        .card(padding: 14)
-    }
-
-    private var footnote: some View {
-        Text(t("footnote.limits"))
-            .font(.caption)
-            .foregroundStyle(Theme.secondary)
-            .padding(.top, 4)
     }
 }
 
@@ -741,7 +689,7 @@ struct StatusBanner: View {
                     check(true, t("cleaned.noneLeft"))
                 } else {
                     check(false, t("cleaned.someLeft", r.remainingIndicators.count)
-                          + r.remainingIndicators.map(\.title).joined(separator: "; "))
+                          + r.remainingIndicators.map(\.displayTitle).joined(separator: "; "))
                 }
                 if let o = r.keptOrientation { check(true, t("cleaned.orientation", o)) }
                 check(r.decodes, r.decodes ? t("cleaned.opens") : t("cleaned.cannotOpen"))
@@ -787,70 +735,6 @@ extension MetaCategory {
         case .other: "text.bubble.fill"
         case .icc: "paintpalette.fill"
         }
-    }
-}
-
-/// Shows, before anything is written, which kinds of data will go and which will stay.
-struct RemovalPreview: View {
-    @EnvironmentObject var model: AppModel
-    let analysis: Analysis
-
-    var body: some View {
-        let present = MetaCategory.allCases.filter { analysis.bytes(in: $0) > 0 }
-        let removing = present.filter { model.remove.contains($0) }
-        let keeping = present.filter { !model.remove.contains($0) }
-        VStack(alignment: .leading, spacing: 14) {
-            CardHeader(symbol: "list.bullet.clipboard.fill", title: t("preview.title"), subtitle: t("preview.subtitle"))
-            if present.isEmpty {
-                Text(t("preview.nothing")).foregroundStyle(Theme.secondary)
-            } else {
-                HStack(alignment: .top, spacing: 14) {
-                    panel(title: t("preview.willRemove"), systemImage: "minus.circle.fill", color: Theme.accentText, items: removing)
-                    panel(title: t("preview.willKeep"), systemImage: "checkmark.circle.fill", color: Theme.success, items: keeping)
-                }
-                if removing.contains(.c2pa), analysis.hasProvenance {
-                    Label(t("preview.provenanceWarning"), systemImage: "exclamationmark.triangle.fill")
-                        .font(.callout)
-                        .foregroundStyle(Theme.warning)
-                        .padding(12)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Theme.warning.opacity(0.10)))
-                        .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).stroke(Theme.warning.opacity(0.30)))
-                }
-            }
-        }
-        .card()
-    }
-
-    private func panel(title: String, systemImage: String, color: Color, items: [MetaCategory]) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 8) {
-                Image(systemName: systemImage).foregroundStyle(color)
-                Text(title).font(.subheadline.weight(.semibold))
-                Spacer()
-                Text("\(items.count)").font(.caption.weight(.semibold).monospacedDigit())
-                    .padding(.horizontal, 8).padding(.vertical, 2)
-                    .background(Capsule().fill(color.opacity(0.16)))
-                    .foregroundStyle(color)
-            }
-            Divider()
-            if items.isEmpty {
-                Text(t("preview.none")).font(.callout).foregroundStyle(Theme.secondary)
-            } else {
-                ForEach(items) { c in
-                    HStack(spacing: 9) {
-                        Image(systemName: c.rowSymbol).foregroundStyle(color).frame(width: 18)
-                        Text(t("cat.\(c.rawValue).short")).font(.callout)
-                        Spacer()
-                        Text(byteString(analysis.bytes(in: c))).font(.callout.monospacedDigit()).foregroundStyle(Theme.secondary)
-                    }
-                }
-            }
-        }
-        .padding(14)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(color.opacity(0.06)))
-        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(color.opacity(0.22)))
     }
 }
 
@@ -913,379 +797,7 @@ struct ActionFooter<Trailing: View>: View {
     }
 }
 
-struct ActionBar: View {
-    @EnvironmentObject var model: AppModel
-    let item: FileItem
-    let analysis: Analysis
-
-    private var suggestedName: String {
-        ImageCleaner.suggestedFilename(for: item.url, kind: analysis.kind, hasAlpha: analysis.hasAlpha)
-    }
-
-    private var summary: String {
-        let removing = MetaCategory.allCases.filter { model.remove.contains($0) && analysis.bytes(in: $0) > 0 }
-        guard !removing.isEmpty else { return t("clean.summary.none") }
-        let bytes = removing.reduce(0) { $0 + analysis.bytes(in: $1) }
-        return t("clean.summary", byteString(bytes))
-    }
-
-    var body: some View {
-        ActionFooter(summary: summary, hint: t("clean.saveHint", suggestedName)) {
-            if model.isCleaning {
-                ProgressView().controlSize(.small)
-                Button(t("common.cancel")) { model.cancelCleaning() }.buttonStyle(.brandSecondary)
-            }
-            let ready = model.files.filter { $0.analysis != nil }.count
-            if ready > 1 {
-                Button { model.cleanAll() } label: {
-                    Label(t("clean.all", ready), systemImage: "square.stack.3d.up")
-                }
-                .buttonStyle(.brandSecondary)
-                .disabled(model.isCleaning)
-            }
-            Button { model.cleanSelected() } label: {
-                Label(item.isCleaned ? t("clean.again") : t("clean.run"), systemImage: "sparkles")
-            }
-            .buttonStyle(.brandPrimaryLarge)
-            .keyboardShortcut(.return, modifiers: .command)
-            .disabled(model.isCleaning)
-        }
-    }
-}
-
 // MARK: - Findings tab
-
-struct FindingsTab: View {
-    let item: FileItem
-    let analysis: Analysis
-    @State private var visualReport: VisualPrivacyReport?
-    @State private var visualScanning = false
-    @State private var visualError: String?
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            privacyReport
-            visualPrivacyReport
-
-            VStack(alignment: .leading, spacing: 12) {
-                SectionTitle(text: t("findings.ai.title"))
-                Text(t("findings.ai.caveat")).font(.caption).foregroundStyle(Theme.secondary)
-                if analysis.indicators.isEmpty {
-                    Label(t("findings.none"), systemImage: "checkmark.circle.fill").foregroundStyle(Theme.success)
-                } else {
-                    ForEach(analysis.indicators) { ind in
-                        HStack(alignment: .top, spacing: 10) {
-                            Circle().fill(severityColor(for: ind.severity)).frame(width: 9, height: 9).padding(.top, 6)
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(ind.title).font(.callout.weight(.medium))
-                                Text(ind.detail).font(.caption).foregroundStyle(Theme.secondary)
-                                Text(t("findings.foundIn", ind.source)).font(.caption2).foregroundStyle(Theme.secondary)
-                            }
-                        }
-                    }
-                }
-            }
-            .card()
-
-            VStack(alignment: .leading, spacing: 12) {
-                SectionTitle(text: t("findings.hidden.title"))
-                let rows = MetaCategory.allCases.map { ($0, analysis.bytes(in: $0)) }.filter { $0.1 > 0 }
-                if rows.isEmpty {
-                    Text(t("findings.hidden.none")).foregroundStyle(Theme.secondary)
-                } else {
-                    ForEach(rows, id: \.0) { (c, size) in
-                        HStack(alignment: .firstTextBaseline) {
-                            VStack(alignment: .leading, spacing: 1) {
-                                Text(t("cat.\(c.rawValue).title")).font(.callout.weight(.medium))
-                                Text(t("cat.\(c.rawValue).detail")).font(.caption).foregroundStyle(Theme.secondary)
-                            }
-                            Spacer()
-                            Chip(text: byteString(size), color: c == .icc ? Theme.secondary : Theme.accentText)
-                        }
-                        if c != rows.last?.0 { Divider() }
-                    }
-                }
-            }
-            .card()
-        }
-    }
-
-    private var visualPrivacyReport: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                VStack(alignment: .leading, spacing: 3) {
-                    SectionTitle(text: t("visual.scan.title"))
-                    Text(t("visual.scan.subtitle")).font(.caption).foregroundStyle(Theme.secondary)
-                }
-                Spacer()
-                Button { startVisualScan() } label: {
-                    if visualScanning {
-                        HStack(spacing: 7) { ProgressView().controlSize(.small); Text(t("visual.scan.scanning")) }
-                    } else {
-                        Label(visualReport == nil ? t("visual.scan.run") : t("visual.scan.again"), systemImage: "viewfinder")
-                    }
-                }
-                .buttonStyle(.brandSecondary)
-                .disabled(visualScanning)
-            }
-
-            if let report = visualReport {
-                if report.regions.isEmpty {
-                    Label(t("visual.scan.none"), systemImage: "checkmark.circle.fill").foregroundStyle(Theme.success)
-                } else {
-                    HStack(spacing: 8) {
-                        if report.faces > 0 { Chip(text: t("visual.scan.faces", report.faces), color: Theme.warning) }
-                        if report.sensitiveText > 0 { Chip(text: t("visual.scan.text", report.sensitiveText), color: Theme.warning) }
-                    }
-                    ForEach(report.regions.prefix(12)) { region in
-                        HStack(spacing: 9) {
-                            Image(systemName: region.kind.symbol).foregroundStyle(Theme.warning).frame(width: 20)
-                            VStack(alignment: .leading, spacing: 1) {
-                                Text(t("visual.kind.\(region.kind.rawValue)")).font(.callout.weight(.medium))
-                                if region.label != t("visual.kind.\(region.kind.rawValue)") {
-                                    Text(region.label).font(.caption).foregroundStyle(Theme.secondary).textSelection(.enabled)
-                                }
-                            }
-                            Spacer()
-                            Text("\(Int(region.confidence * 100))%")
-                                .font(.caption.monospacedDigit()).foregroundStyle(Theme.secondary)
-                        }
-                    }
-                    Text(t("visual.scan.review")).font(.caption).foregroundStyle(Theme.secondary)
-                }
-            } else if let visualError {
-                Label(visualError, systemImage: "exclamationmark.triangle.fill").foregroundStyle(Theme.danger)
-            }
-            Text(t("visual.scan.local")).font(.caption).foregroundStyle(Theme.secondary)
-        }
-        .card()
-    }
-
-    private func startVisualScan() {
-        visualScanning = true
-        visualError = nil
-        visualReport = nil
-        let url = item.url
-        Task {
-            let result = await Task.detached(priority: .userInitiated) {
-                Result { try VisualPrivacyScanner.scan(url: url) }
-            }.value
-            visualScanning = false
-            switch result {
-            case .success(let report): visualReport = report
-            case .failure(let error): visualError = error.localizedDescription
-            }
-        }
-    }
-
-    private var privacyReport: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .top, spacing: 12) {
-                Image(systemName: analysis.privacyRisk == .high ? "hand.raised.fill" : "checkmark.shield.fill")
-                    .font(.title2)
-                    .foregroundStyle(analysis.privacyRisk == .high ? Theme.warning : Theme.success)
-                    .frame(width: 34)
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(t("privacy.report.title")).font(.headline)
-                    Text(t(analysis.privacyRisk == .high ? "privacy.report.review" :
-                           analysis.privacyRisk == .medium ? "privacy.report.caution" : "privacy.report.clear"))
-                        .font(.callout).foregroundStyle(Theme.secondary)
-                }
-            }
-
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 250), spacing: 10)], spacing: 10) {
-                ForEach(analysis.privacyFacts) { fact in
-                    HStack(alignment: .top, spacing: 10) {
-                        Image(systemName: fact.kind.symbol)
-                            .foregroundStyle(severityColor(for: fact.severity))
-                            .frame(width: 22, height: 22)
-                            .background(Circle().fill(severityColor(for: fact.severity).opacity(0.12)))
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(t("privacy.fact.\(fact.kind.rawValue)"))
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(Theme.secondary)
-                            Text(fact.value).font(.callout.weight(.medium)).lineLimit(3)
-                            Text(fact.source).font(.caption2).foregroundStyle(Theme.secondary)
-                        }
-                        Spacer(minLength: 0)
-                    }
-                    .padding(11)
-                    .frame(maxWidth: .infinity, minHeight: 72, alignment: .topLeading)
-                    .background(RoundedRectangle(cornerRadius: 10).fill(Theme.canvas))
-                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(Theme.border))
-                }
-            }
-            Text(t("privacy.report.disclaimer")).font(.caption).foregroundStyle(Theme.secondary)
-        }
-        .card()
-    }
-}
-
-// MARK: - Options tab
-
-struct OptionsTab: View {
-    @EnvironmentObject var model: AppModel
-    let analysis: Analysis
-
-    private func binding(_ c: MetaCategory) -> Binding<Bool> {
-        Binding(get: { model.remove.contains(c) },
-                set: { on in if on { model.remove.insert(c) } else { model.remove.remove(c) } })
-    }
-
-    private func fieldBinding(_ field: PrivateMetadataField) -> Binding<Bool> {
-        Binding(get: { model.selectiveFields.contains(field) },
-                set: { on in if on { model.selectiveFields.insert(field) } else { model.selectiveFields.remove(field) } })
-    }
-
-    // Shared column widths keep the header and every row aligned.
-    private let foundWidth: CGFloat = 170
-    private let toggleWidth: CGFloat = 64
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            removalTable
-            selectiveCard
-            if analysis.kind == .other {
-                Label(t("options.reencodeNote"), systemImage: "info.circle")
-                    .font(.caption).foregroundStyle(Theme.secondary)
-            }
-        }
-    }
-
-    // MARK: What to remove
-
-    private var removalTable: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            VStack(alignment: .leading, spacing: 12) {
-                CardHeader(symbol: "slider.horizontal.3", title: t("options.title"), subtitle: t("options.text")) {
-                    Button(t("options.reset")) { model.remove = MetaCategory.defaultRemoval }
-                        .buttonStyle(.brandSecondary)
-                        .disabled(model.remove == MetaCategory.defaultRemoval)
-                }
-            }
-            .padding(18)
-
-            Divider()
-            HStack(spacing: 12) {
-                Text(t("options.col.type")).frame(maxWidth: .infinity, alignment: .leading)
-                Text(t("options.col.found")).frame(width: foundWidth, alignment: .trailing)
-                Text(t("options.col.remove")).frame(width: toggleWidth, alignment: .center)
-            }
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(Theme.secondary)
-            .padding(.horizontal, 18).padding(.vertical, 9)
-            .background(Theme.canvas)
-            Divider()
-
-            ForEach(Array(MetaCategory.allCases.enumerated()), id: \.element) { index, c in
-                row(c)
-                if index < MetaCategory.allCases.count - 1 { Divider().padding(.leading, 64) }
-            }
-        }
-        .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Theme.surface))
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(Theme.border))
-    }
-
-    private func row(_ c: MetaCategory) -> some View {
-        let size = analysis.bytes(in: c)
-        let present = size > 0
-        let on = model.remove.contains(c)
-        let warns = c == .c2pa && present && on
-        return HStack(spacing: 12) {
-            HStack(spacing: 12) {
-                Image(systemName: c.rowSymbol)
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(warns ? Theme.warning : (present ? Theme.accentText : Theme.secondary))
-                    .frame(width: 34, height: 34)
-                    .background(RoundedRectangle(cornerRadius: 9, style: .continuous)
-                        .fill((warns ? Theme.warning : (present ? Theme.orange : Theme.secondary)).opacity(0.13)))
-                VStack(alignment: .leading, spacing: 3) {
-                    HStack(spacing: 8) {
-                        Text(t("cat.\(c.rawValue).title")).font(.callout.weight(.semibold))
-                        if MetaCategory.defaultRemoval.contains(c) {
-                            Text(t("options.recommended")).font(.caption2.weight(.semibold))
-                                .padding(.horizontal, 6).padding(.vertical, 2)
-                                .background(Capsule().fill(Theme.success.opacity(0.14)))
-                                .foregroundStyle(Theme.success)
-                        }
-                    }
-                    Text(t("cat.\(c.rawValue).detail")).font(.caption).foregroundStyle(Theme.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-
-            Group {
-                if present {
-                    Chip(text: t("options.inPhoto", byteString(size)), color: Theme.accentText)
-                } else {
-                    Text(t("options.notInPhoto")).font(.caption).foregroundStyle(Theme.secondary)
-                }
-            }
-            .frame(width: foundWidth, alignment: .trailing)
-
-            Toggle("", isOn: binding(c))
-                .labelsHidden()
-                .toggleStyle(.switch)
-                .accessibilityLabel(t("cat.\(c.rawValue).title"))
-                .frame(width: toggleWidth)
-        }
-        .padding(.horizontal, 18).padding(.vertical, 12)
-        .background(on && present ? Theme.orange.opacity(0.045) : Color.clear)
-        .opacity(present || on ? 1 : 0.7)
-    }
-
-    // MARK: Selective cleaning
-
-    private var selectiveCard: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            CardHeader(symbol: "scope", title: t("selective.title"), subtitle: t("selective.text"))
-            HStack(spacing: 8) {
-                Button(t("selective.locationOnly")) { model.selectiveFields = [.location] }.buttonStyle(.brandSecondary)
-                Button(t("selective.everything")) { model.selectiveFields = Set(PrivateMetadataField.allCases) }.buttonStyle(.brandSecondary)
-            }
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 190), spacing: 10)], spacing: 10) {
-                ForEach(PrivateMetadataField.allCases) { field in
-                    FieldChip(field: field, isOn: fieldBinding(field))
-                }
-            }
-            ScopeRow()
-            ExportSection(tool: .clean,
-                          runTitle: runTitle("selective.run", count: model.toolTargets.count),
-                          prominent: false, showsBatch: false) {
-                model.runSelectiveClean()
-            }
-        }
-        .card()
-    }
-}
-
-/// A selectable pill used for the private-field choices.
-private struct FieldChip: View {
-    let field: PrivateMetadataField
-    @Binding var isOn: Bool
-
-    var body: some View {
-        Button { isOn.toggle() } label: {
-            HStack(spacing: 9) {
-                Image(systemName: isOn ? "checkmark.circle.fill" : "circle")
-                    .foregroundStyle(isOn ? Theme.accentText : Theme.secondary)
-                Label(t("privacy.field.\(field.rawValue)"), systemImage: field.symbol)
-                    .font(.callout.weight(isOn ? .semibold : .regular))
-                    .foregroundStyle(Theme.ink)
-                Spacer(minLength: 0)
-            }
-            .padding(.horizontal, 12).padding(.vertical, 10)
-            .background(RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(isOn ? Theme.orange.opacity(0.10) : Theme.canvas))
-            .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .stroke(isOn ? Theme.orange.opacity(0.55) : Theme.border))
-        }
-        .buttonStyle(.plain)
-        .accessibilityAddTraits(isOn ? .isSelected : [])
-    }
-}
 
 // MARK: - Metadata list
 

@@ -1,0 +1,26 @@
+{
+  "name": "mypixelguard-motion-video",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "studio": "remotion studio src/index.ts",
+    "audio": "python3 scripts/make_audio.py",
+    "clips": "bash scripts/cut_clips.sh",
+    "render": "remotion render src/index.ts MyPixelGuardLaunch out/_render.mp4 --codec h264 --crf 16 --audio-bitrate 320k && ffmpeg -v error -y -i out/_render.mp4 -c:v copy -af alimiter=limit=0.84:attack=3:release=50:level=false -c:a aac -b:a 320k -movflags +faststart out/MyPixelGuard-Launch-Final.mp4 && rm out/_render.mp4",
+    "still": "remotion still src/index.ts MyPixelGuardLaunch",
+    "vo": "python3 scripts/make_vo.py",
+    "thumb": "remotion still src/index.ts Thumbnail out/MyPixelGuard-Thumbnail.png"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.536",
+    "@remotion/google-fonts": "4.0.536",
+    "@remotion/transitions": "4.0.536",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "remotion": "4.0.536"
+  },
+  "devDependencies": {
+    "@types/react": "19.1.8",
+    "typescript": "5.8.3"
+  }
+}

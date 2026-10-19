@@ -417,8 +417,16 @@ enum ImageCleaner {
 
     /// Writes a cleaned copy to `output`. With `avoidOverwrite` an existing file is never replaced
     /// (a number is added to the name); the original image is never replaced in either mode.
-    static func clean(input: URL, output: URL, avoidOverwrite: Bool, remove: Set<MetaCategory>) throws -> CleanReport {
-        guard let data = try? Data(contentsOf: input) else { throw EngineError.unreadable }
+    /// `fields` are private details (location, device, author…) to remove even when their whole metadata block is kept.
+    static func clean(input: URL, output: URL, avoidOverwrite: Bool, remove: Set<MetaCategory>,
+                      fields: Set<PrivateMetadataField> = []) throws -> CleanReport {
+        guard let original = try? Data(contentsOf: input) else { throw EngineError.unreadable }
+        var data = original
+        let pending = fields.filter { !$0.isCovered(by: remove) }
+        let firstKind = Engine.detect([UInt8](original))
+        if !pending.isEmpty, firstKind != .other, firstKind != .gif {
+            data = try SelectiveMetadataService.process(url: input, removing: Set(pending)).data
+        }
         let b = [UInt8](data)
         let kind = Engine.detect(b)
 
@@ -463,7 +471,7 @@ enum ImageCleaner {
         }()
         let rescan = try? Analyzer.analyze(url: target)
 
-        return CleanReport(output: target, beforeBytes: b.count, afterBytes: outBytes.count,
+        return CleanReport(output: target, beforeBytes: original.count, afterBytes: outBytes.count,
                            removed: removedList, reencoded: reencoded, keptOrientation: kept,
                            decodes: decodes,
                            remainingIndicators: rescan?.indicators.filter { $0.severity != .info } ?? [],

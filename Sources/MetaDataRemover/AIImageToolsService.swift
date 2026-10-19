@@ -11,6 +11,8 @@ enum CropAspect: String, CaseIterable, Identifiable {
 }
 
 struct AIImageSettings {
+    /// True when at least one image tool is switched on.
+    var hasTool: Bool { enhance || upscale || smartCrop || removeBackground }
     var enhance = true
     var upscale = false
     var upscaleFactor = 2
@@ -24,9 +26,50 @@ struct AIImageSettings {
 }
 
 enum AIImageToolsService {
+    /// A reduced-size render of the enabled tools for the live before/after.
+    /// Upscale is left out of the pixels (it only adds detail-free size) and reported through `finalWidth`/`finalHeight`.
+    struct Preview {
+        var image: CGImage
+        var finalWidth: Int
+        var finalHeight: Int
+        var notes: [String]
+    }
+
+    static func preview(url: URL, settings s: AIImageSettings, maxPixel: Int = 900) throws -> Preview {
+        let info = try ImageCodec.info(url: url)
+        let source = try ImageCodec.loadImage(url: url, maxPixel: maxPixel)
+        let (image, notes) = apply(s, to: source, includeUpscale: false)
+        guard let output = CIContext().createCGImage(image, from: image.extent.integral) else { throw ImageToolError.encodeFailed }
+        let scale = Double(info.width) / Double(max(source.width, 1))
+        let factor = s.upscale ? Double(max(2, min(s.upscaleFactor, 4))) : 1
+        // Without a crop the final size is exact; with one it is scaled up from the reduced render.
+        let width = s.smartCrop ? Double(output.width) * scale : Double(info.width)
+        let height = s.smartCrop ? Double(output.height) * scale : Double(info.height)
+        return Preview(image: output,
+                       finalWidth: Int((width * factor).rounded()),
+                       finalHeight: Int((height * factor).rounded()),
+                       notes: notes)
+    }
+
     static func process(url: URL, settings s: AIImageSettings) throws -> ProcessedImage {
         let info = try ImageCodec.info(url: url)
         let source = try ImageCodec.loadImage(url: url)
+        var (image, notes) = apply(s, to: source, includeUpscale: true)
+
+        let context = CIContext()
+        let extent = image.extent.integral
+        guard let output = context.createCGImage(image, from: extent) else { throw ImageToolError.encodeFailed }
+        var format = s.format ?? ImageCodec.sameFormat(as: info)
+        if s.removeBackground, format == .jpeg { format = .png }
+        let data = try ImageCodec.encode(output, as: format, quality: format.isLossy ? s.quality : nil,
+                                         background: CGColor(gray: 1, alpha: 1),
+                                         keepProperties: s.cleanMetadata ? nil : info.properties)
+        if s.cleanMetadata { notes.append(t("studio.note.metadata")) }
+        return ProcessedImage(data: data, format: format, width: output.width, height: output.height, notes: notes,
+                              expectMetadataClean: s.cleanMetadata)
+    }
+
+    private static func apply(_ s: AIImageSettings, to source: CGImage, includeUpscale: Bool) -> (CIImage, [String]) {
         var image = CIImage(cgImage: source)
         var notes: [String] = []
 
@@ -50,7 +93,7 @@ enum AIImageToolsService {
                 notes.append(t("ai.note.backgroundUnavailable"))
             }
         }
-        if s.upscale {
+        if s.upscale, includeUpscale {
             let factor = CGFloat(max(2, min(s.upscaleFactor, 4)))
             let filter = CIFilter(name: "CILanczosScaleTransform")
             filter?.setValue(image, forKey: kCIInputImageKey)
@@ -59,18 +102,7 @@ enum AIImageToolsService {
             if let output = filter?.outputImage { image = output }
             notes.append(t("ai.note.upscaled", Int(factor)))
         }
-
-        let context = CIContext()
-        let extent = image.extent.integral
-        guard let output = context.createCGImage(image, from: extent) else { throw ImageToolError.encodeFailed }
-        var format = s.format ?? ImageCodec.sameFormat(as: info)
-        if s.removeBackground, format == .jpeg { format = .png }
-        let data = try ImageCodec.encode(output, as: format, quality: format.isLossy ? s.quality : nil,
-                                         background: CGColor(gray: 1, alpha: 1),
-                                         keepProperties: s.cleanMetadata ? nil : info.properties)
-        if s.cleanMetadata { notes.append(t("studio.note.metadata")) }
-        return ProcessedImage(data: data, format: format, width: output.width, height: output.height, notes: notes,
-                              expectMetadataClean: s.cleanMetadata)
+        return (image, notes)
     }
 
     private static func salientCrop(image: CGImage, ratio: CGFloat) -> CGRect {

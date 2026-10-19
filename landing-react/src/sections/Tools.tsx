@@ -139,7 +139,7 @@ export default function Tools() {
                   </i>
                   <span>Resize</span>
                 </div>
-                <Pic src={img_app_resize_webp} width={1600} height={1041} loading="lazy" alt={"The Resize tool with size presets and fit options"} altBn={"Resize টুল, সাইজ প্রিসেট আর ফিট অপশনসহ"} />
+                <Pic src={img_app_resize_webp} width={1600} height={1041} loading="lazy" alt={"The Resize tool with a before and after preview, size presets and output options"} altBn={"Resize টুল, সাইজ প্রিসেট আর ফিট অপশনসহ"} />
               </div>
             </div>
             <div className="panel" id="p-compress" role="tabpanel" aria-labelledby="t-compress" hidden={tab !== "compress"}>
@@ -166,7 +166,7 @@ export default function Tools() {
                   </i>
                   <span>Compress</span>
                 </div>
-                <Pic src={img_app_compress_webp} width={1600} height={1041} loading="lazy" alt={"The Compress tool with a quality slider and before and after sizes"} altBn={"Compress টুল, কোয়ালিটি স্লাইডার আর আগে-পরের সাইজসহ"} />
+                <Pic src={img_app_compress_webp} width={1600} height={1041} loading="lazy" alt={"The Compress tool with before and after previews, a 1 MB to 614 KB result and a quality vs file size chart"} altBn={"Compress টুল, কোয়ালিটি স্লাইডার আর আগে-পরের সাইজসহ"} />
               </div>
             </div>
             <div className="panel" id="p-bg" role="tabpanel" aria-labelledby="t-bg" hidden={tab !== "bg"}>
@@ -193,7 +193,7 @@ export default function Tools() {
                   </i>
                   <span>Remove Background</span>
                 </div>
-                <Pic src={img_app_background_webp} width={1600} height={1041} loading="lazy" alt={"The Remove Background tool showing a coffee mug before and after, on a transparency checkerboard"} altBn={"Remove Background টুল, যেখানে একটা কফি কাপের আগে আর পরের ছবি স্বচ্ছ চেকারবোর্ডের ওপর দেখা যাচ্ছে"} />
+                <Pic src={img_app_background_webp} width={1600} height={1041} loading="lazy" alt={"The Remove Background tool showing a photo of a person at a laptop before and after, on a transparency checkerboard"} altBn={"Remove Background টুল, যেখানে ল্যাপটপে কাজ করা একজন মানুষের আগে আর পরের ছবি স্বচ্ছ চেকারবোর্ডের ওপর দেখা যাচ্ছে"} />
               </div>
             </div>
             <div className="panel" id="p-studio" role="tabpanel" aria-labelledby="t-studio" hidden={tab !== "studio"}>

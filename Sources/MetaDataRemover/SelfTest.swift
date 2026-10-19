@@ -169,9 +169,16 @@ enum SelfTest {
         check(p.canvasWidth == 800 && p.canvasHeight == 1600, "locked width follows each image's own ratio")
         p = plan(2000, 1000) { $0.lockAspect = false; $0.width = 1080; $0.height = 1080; $0.fit = .fit }
         check(p.canvasWidth == 1080 && p.canvasHeight == 540, "fit 2000×1000 into 1080² → 1080×540")
+        p = plan(2000, 1000) { $0.lockAspect = false; $0.width = 1080; $0.height = 1350; $0.fit = .pad }
+        check(p.canvasWidth == 1080 && p.canvasHeight == 1350, "pad gives the exact 1080×1350", "\(p.canvasWidth)×\(p.canvasHeight)")
+        check(p.drawRect.width == 1080 && p.drawRect.height == 540 && p.drawRect.minY == 405, "pad centres the whole picture", "\(p.drawRect)")
         p = plan(2000, 1000) { $0.lockAspect = false; $0.width = 1080; $0.height = 1080; $0.fit = .fill }
         check(p.canvasWidth == 1080 && p.canvasHeight == 1080, "fill gives the exact 1080×1080")
         check(p.drawRect.width > 1080 && p.drawRect.height == 1080, "fill crops the overflow", "\(p.drawRect)")
+        p = plan(2000, 1000) { $0.lockAspect = false; $0.width = 1080; $0.height = 1080; $0.fit = .fill; $0.anchor = CGPoint(x: 0, y: 0.5) }
+        check(p.drawRect.minX == 0, "fill anchored left keeps the left edge", "\(p.drawRect)")
+        p = plan(2000, 1000) { $0.lockAspect = false; $0.width = 1080; $0.height = 1080; $0.fit = .fill; $0.anchor = CGPoint(x: 1, y: 0.5) }
+        check(abs(p.drawRect.maxX - 1080) < 0.5, "fill anchored right keeps the right edge", "\(p.drawRect)")
         p = plan(2000, 1000) { $0.lockAspect = false; $0.width = 1080; $0.height = 1080; $0.fit = .stretch }
         check(p.canvasWidth == 1080 && p.canvasHeight == 1080, "stretch gives exact size")
         p = plan(500, 500) { $0.lockAspect = true; $0.width = 1000 }
@@ -188,6 +195,15 @@ enum SelfTest {
                 check(pixel(img, x: 5, y: 50).r > 180 && pixel(img, x: 95, y: 50).b > 180, "fill keeps both halves of the picture")
             }
         } else { check(false, "resize process") }
+
+        var pad = ResizeSettings(); pad.lockAspect = false; pad.width = 400; pad.height = 200; pad.fit = .pad
+        pad.borderAuto = true; pad.outputFormat = .png
+        if let out = try? ImageResizeService.process(url: url, settings: pad),
+           let img = ImageCodec.thumbnail(of: out.data, maxPixel: 400) {
+            check(out.width == 400 && out.height == 200, "pad produces the exact size", "\(out.width)×\(out.height)")
+            check(pixel(img, x: 10, y: 100).r > 150 && pixel(img, x: 390, y: 100).b > 150,
+                  "auto border continues each side's edge colour", "\(pixel(img, x: 10, y: 100)) \(pixel(img, x: 390, y: 100))")
+        } else { check(false, "pad process") }
     }
 
     private static func compression(_ dir: URL) {

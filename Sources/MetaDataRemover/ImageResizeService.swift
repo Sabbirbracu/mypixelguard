@@ -34,7 +34,13 @@ enum PresetStore {
 
 struct ResizeSettings: Equatable {
     enum Mode: String, CaseIterable, Identifiable { case pixels, percent; var id: String { rawValue } }
-    enum Fit: String, CaseIterable, Identifiable { case fit, fill, stretch; var id: String { rawValue } }
+    /// `pad` is what the Resize tab offers: the exact size, with the whole picture inside and borders where the shapes differ.
+    /// `fit` only shrinks the picture to fit (no borders); Batch Studio recipes use it.
+    enum Fit: String, CaseIterable, Identifiable {
+        case pad, fill, stretch, fit
+        var id: String { rawValue }
+        static var choices: [Fit] { [.pad, .fill, .stretch] }
+    }
     enum Driver { case width, height }
 
     var mode: Mode = .pixels
@@ -44,7 +50,13 @@ struct ResizeSettings: Equatable {
     /// With the aspect ratio locked, this is the dimension the user typed; the other follows each image.
     var driver: Driver = .width
     var percent = 50.0
-    var fit: Fit = .fit
+    var fit: Fit = .pad
+    /// The size preset the user picked; cleared as soon as they type their own numbers.
+    var presetID: UUID?
+    /// "Fit" borders take their colour from the picture's own edges (otherwise `background`).
+    var borderAuto = true
+    /// With "Fill": which part of the picture stays visible. (0, 0) is the top-left corner, (0.5, 0.5) the centre.
+    var anchor = CGPoint(x: 0.5, y: 0.5)
     var neverEnlarge = false
     /// nil keeps each image's own format.
     var outputFormat: OutputFormat?
@@ -83,6 +95,11 @@ enum ImageResizeService {
         case .pixels:
             let tw = Double(max(s.width, 1)), th = Double(max(s.height, 1))
             switch s.fit {
+            case .pad:
+                let f = min(tw / ow, th / oh)
+                cw = tw; ch = th
+                draw = CGRect(x: (tw - ow * f) / 2, y: (th - oh * f) / 2, width: ow * f, height: oh * f)
+                scaleUp = f > 1
             case .fit:
                 let f = min(tw / ow, th / oh)
                 cw = ow * f; ch = oh * f
@@ -90,7 +107,9 @@ enum ImageResizeService {
             case .fill:
                 let f = max(tw / ow, th / oh)
                 cw = tw; ch = th
-                draw = CGRect(x: (tw - ow * f) / 2, y: (th - oh * f) / 2, width: ow * f, height: oh * f)
+                let a = CGPoint(x: min(max(s.anchor.x, 0), 1), y: min(max(s.anchor.y, 0), 1))
+                // The drawing space has y pointing up, so a top anchor (0) puts the picture's top edge at the canvas top.
+                draw = CGRect(x: (tw - ow * f) * a.x, y: (th - oh * f) * (1 - a.y), width: ow * f, height: oh * f)
                 scaleUp = f > 1
             case .stretch:
                 cw = tw; ch = th
@@ -124,11 +143,19 @@ enum ImageResizeService {
             resized = source
         } else {
             // Fill/crop on a format without transparency can leave no gaps, so only flatten when needed.
-            let bg: CGColor? = format.supportsAlpha ? nil : s.background.cgColorSRGB
-            guard let r = ImageCodec.render(source, width: plan.canvasWidth, height: plan.canvasHeight,
-                                            drawRect: plan.drawRect, background: bg) else {
-                throw ImageToolError.encodeFailed
+            // Borders and flattened transparency take the background colour, unless the picture itself can stay transparent.
+            let bg: CGColor? = (format.supportsAlpha && info.hasAlpha) ? nil : s.background.cgColorSRGB
+            let keepsTransparency = format.supportsAlpha && info.hasAlpha
+            let rendered: CGImage?
+            if s.borderAuto, !keepsTransparency, let bars = BorderFill.bars(for: plan),
+               let samples = BorderFill.samples(of: source, bars: bars) {
+                rendered = BorderFill.renderPadded(source, width: plan.canvasWidth, height: plan.canvasHeight,
+                                                   drawRect: plan.drawRect, bars: bars, samples: samples)
+            } else {
+                rendered = ImageCodec.render(source, width: plan.canvasWidth, height: plan.canvasHeight,
+                                             drawRect: plan.drawRect, background: bg)
             }
+            guard let r = rendered else { throw ImageToolError.encodeFailed }
             resized = r
         }
         let data = try ImageCodec.encode(resized, as: format, quality: format.isLossy ? s.quality : nil,

@@ -110,6 +110,11 @@ final class AppModel: ObservableObject {
     @Published var aiTools = AIImageSettings()
     @Published var background = BackgroundRemovalSettings()
     @Published var selectiveFields: Set<PrivateMetadataField> = [.location]
+    /// Private details the Clean tab removes on top of whole blocks (see `PrivateMetadataField.isCovered`).
+    @Published var cleanFields: Set<PrivateMetadataField> = CleanDefaults.fields
+    /// Folder the Clean tab saves into. The path is remembered; access is only granted once picked in this session.
+    @Published var saveFolder: URL? = UserDefaults.standard.string(forKey: "lastSaveDirectory").map { URL(fileURLWithPath: $0) }
+    private var saveFolderGranted = ProcessInfo.processInfo.environment["APP_SANDBOX_CONTAINER_ID"] == nil
     @Published var selectedRecipe = ImageRecipe.builtIn[0]
     @Published var customRecipes: [ImageRecipe] = RecipeStore.load() {
         didSet { RecipeStore.save(customRecipes) }
@@ -215,6 +220,28 @@ final class AppModel: ObservableObject {
         set { UserDefaults.standard.set(newValue?.path, forKey: "lastSaveDirectory") }
     }
 
+    /// Lets the user pick the Clean tab's destination folder.
+    @discardableResult
+    func chooseSaveFolder(fallback: URL? = nil) -> URL? {
+        let panel = NSOpenPanel()
+        panel.title = t("panel.chooseFolder.title")
+        panel.prompt = t("panel.saveHere")
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.canCreateDirectories = true
+        panel.directoryURL = saveFolder ?? fallback
+        guard panel.runModal() == .OK, let folder = panel.url else { return nil }
+        saveFolder = folder
+        lastDirectory = folder
+        saveFolderGranted = true
+        return folder
+    }
+
+    private func resolveSaveFolder(fallback: URL) -> URL? {
+        if let folder = saveFolder, saveFolderGranted { return folder }
+        return chooseSaveFolder(fallback: fallback)
+    }
+
     func cleanSelected() {
         if let id = selection { startCleaning(ids: [id]) }
     }
@@ -241,52 +268,29 @@ final class AppModel: ObservableObject {
         guard !targets.isEmpty else { return }
         guard confirmProvenanceRemoval(targets, removing: remove) else { return }
 
-        // (id, input, output, avoidOverwrite)
-        var plan: [(UUID, URL, URL, Bool)] = []
+        guard let folder = resolveSaveFolder(fallback: targets[0].url.deletingLastPathComponent()) else { return }
 
-        if targets.count == 1, let t0 = targets.first, let a = t0.analysis {
-            let name = ImageCleaner.suggestedFilename(for: t0.url, kind: a.kind, hasAlpha: a.hasAlpha)
-            let panel = NSSavePanel()
-            panel.title = t("panel.saveCleaned.title")
-            panel.message = t("panel.saveCleaned.message", t0.url.lastPathComponent)
-            panel.prompt = t("common.save")
-            panel.nameFieldStringValue = name
-            panel.canCreateDirectories = true
-            panel.directoryURL = lastDirectory ?? t0.url.deletingLastPathComponent()
-            if let type = UTType(filenameExtension: (name as NSString).pathExtension) { panel.allowedContentTypes = [type] }
-            guard panel.runModal() == .OK, let dest = panel.url else { return }
-            lastDirectory = dest.deletingLastPathComponent()
-            plan = [(t0.id, t0.url, dest, false)]
-        } else {
-            let panel = NSOpenPanel()
-            panel.title = t("panel.chooseFolder.title")
-            panel.message = t("panel.saveCleanedMany.message", targets.count, ImageCleaner.nameSuffix)
-            panel.prompt = t("panel.saveHere")
-            panel.canChooseFiles = false
-            panel.canChooseDirectories = true
-            panel.canCreateDirectories = true
-            panel.directoryURL = lastDirectory ?? targets[0].url.deletingLastPathComponent()
-            guard panel.runModal() == .OK, let folder = panel.url else { return }
-            lastDirectory = folder
-            plan = targets.compactMap { target in
-                guard let a = target.analysis else { return nil }
-                let name = ImageCleaner.suggestedFilename(for: target.url, kind: a.kind, hasAlpha: a.hasAlpha)
-                return (target.id, target.url, folder.appendingPathComponent(name), true)
-            }
+        // (id, input, output, avoidOverwrite)
+        let plan: [(UUID, URL, URL, Bool)] = targets.compactMap { target in
+            guard let a = target.analysis else { return nil }
+            let name = ImageCleaner.suggestedFilename(for: target.url, kind: a.kind, hasAlpha: a.hasAlpha)
+            return (target.id, target.url, folder.appendingPathComponent(name), true)
         }
 
         let remove = self.remove
+        let fields = cleanFields
         isCleaning = true
         cleanTask = Task {
             for (id, input, output, avoid) in plan {
                 if Task.isCancelled { break }
                 let result = await Task.detached(priority: .userInitiated) {
-                    Result<CleanReport, Error> { try ImageCleaner.clean(input: input, output: output, avoidOverwrite: avoid, remove: remove) }
+                    Result<CleanReport, Error> { try ImageCleaner.clean(input: input, output: output, avoidOverwrite: avoid, remove: remove, fields: fields) }
                 }.value
                 switch result {
                 case .success(let report): update(id) { $0.status = .cleaned(report) }
                 case .failure(let error):  update(id) { $0.status = .failed(error.localizedDescription) }
                 }
+                AppServices.shared.recordSave(tool: .clean, succeeded: (try? result.get()) != nil)
             }
             isCleaning = false
         }
@@ -341,6 +345,7 @@ final class AppModel: ObservableObject {
                     ImageExportService.export(input: url, folder: folder, suffix: suffix, operation: operation)
                 }.value
                 batch?.results.append(result)
+                AppServices.shared.recordSave(tool: tool, succeeded: result.succeeded)
             }
             batch?.cancelled = Task.isCancelled
             batch?.current = ""
