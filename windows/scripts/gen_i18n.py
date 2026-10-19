@@ -55,6 +55,8 @@ OVERRIDES_EN = {
     "settings.privacy.body": "Images are opened, changed and saved on this PC only. The app doesn’t upload images or metadata and doesn’t need an internet connection.",
     "bg.lossy.hint": "Lossless formats keep full quality. Lossy ones trade some for size.",
     "ai.background": "Remove background",
+    "inspect.scan.local": "Runs locally on this PC.",
+    "redact.detection.scanning": "Scanning on this PC…",
 }
 OVERRIDES_BN = {
     "privacy.badge": "সবকিছু আপনার PC-তেই হয়। কিছুই আপলোড হয় না।",
@@ -76,6 +78,8 @@ OVERRIDES_BN = {
     "format.unavailable": "এই PC-তে চলে না: %@।",
     "err.formatUnavailable": "এই PC %@ ফাইল লিখতে পারে না।",
     "settings.privacy.body": "ছবি শুধু এই PC-তেই খোলা, বদলানো আর Save করা হয়। অ্যাপ কোনো ছবি বা Metadata আপলোড করে না, এমনকি ইন্টারনেটও লাগে না।",
+    "inspect.scan.local": "আপনার PC-তেই চলে।",
+    "redact.detection.scanning": "আপনার PC-তে খোঁজা হচ্ছে…",
 }
 
 # Strings that only exist on Windows (the Swift app hard-codes some of these in English).

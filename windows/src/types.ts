@@ -45,7 +45,7 @@ export interface SourceInfo {
   is_animated: boolean;
 }
 
-export interface FileScan { thumb: string | null; info: SourceInfo | null; analysis: Analysis | null; analysisError: CoreError | null }
+export interface FileScan { thumb: string | null; info: SourceInfo | null; analysis: Analysis | null; analysisError: CoreError | null; created?: number | null; modified?: number | null }
 
 export interface RemovedItem { category: MetaCategory; bytes: number }
 export interface CleanReport {
@@ -108,7 +108,7 @@ export type RGB = [number, number, number];
 export interface ConvertSettings { format: OutputFormat; quality: number; background: RGB; keepMetadata: boolean; suffix: string }
 export interface ResizeSettings {
   mode: "pixels" | "percent"; width: number; height: number; lockAspect: boolean; driver: "width" | "height"; percent: number;
-  fit: "fit" | "fill" | "stretch"; neverEnlarge: boolean; outputFormat: OutputFormat | null; quality: number; background: RGB;
+  fit: "pad" | "fill" | "stretch" | "fit"; borderAuto: boolean; anchor: [number, number]; presetID: string | null; neverEnlarge: boolean; outputFormat: OutputFormat | null; quality: number; background: RGB;
   keepMetadata: boolean; suffix: string;
 }
 export interface CompressSettings {
@@ -120,6 +120,7 @@ export interface BackgroundSettings {
 export interface RedactionSettings {
   style: "blur" | "pixelate" | "solid"; strength: number; format: OutputFormat | null; quality: number; cleanMetadata: boolean; suffix: string;
 }
+export interface AiPreview { image: string; finalWidth: number; finalHeight: number; notes: Note[] }
 export interface AiSettings {
   enhance: boolean; upscale: boolean; upscaleFactor: number; smartCrop: boolean; cropAspect: "square" | "portrait" | "landscape";
   removeBackground: boolean; format: OutputFormat | null; quality: number; cleanMetadata: boolean; suffix: string;

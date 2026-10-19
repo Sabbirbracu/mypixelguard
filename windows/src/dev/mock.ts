@@ -26,7 +26,7 @@ export async function installMock() {
       case "scan_file": {
         await delay(250);
         const name = String(args.path).split(/[\\/]/).pop()!;
-        return fx.files[name] ?? fx.files[names[0]];
+        return { ...(fx.files[name] ?? fx.files[names[0]]), created: Date.UTC(2026, 9, 12), modified: Date.UTC(2026, 9, 20) };
       }
       case "suggest_clean_name": return String(args.path).split(/[\\/]/).pop()!.replace(/(\.[^.]+)$/, "_AI-label-cleaned$1");
       case "clean_file": await delay(400); return { ...fx.clean, output: args.req.output };
@@ -46,6 +46,17 @@ export async function installMock() {
       case "convert_estimate": return 48210;
       case "compress_preview": await delay(300); return fx.compress;
       case "resize_plan": return fx.plan;
+      case "preview_image": {
+        const name = String(args.path).split(/[\\/]/).pop()!;
+        return (fx.files[name] ?? fx.files[names[0]]).thumb;
+      }
+      case "ai_preview": {
+        await delay(400);
+        const name = String(args.path).split(/[\\/]/).pop()!;
+        const f = fx.files[name] ?? fx.files[names[0]];
+        const k = args.settings.upscale ? args.settings.upscaleFactor : 1;
+        return { image: args.settings.removeBackground ? fx.bgCutout : f.thumb, finalWidth: f.info.width * k, finalHeight: f.info.height * k, notes: [] };
+      }
       case "background_preview": await delay(700); return fx.bgCutout;
       case "redact_base": return { image: fx.faceDemo, width: 1200, height: 1200 };
       case "redact_preview": await delay(150); return fx.faceDemo;

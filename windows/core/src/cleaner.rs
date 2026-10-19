@@ -10,6 +10,7 @@ use crate::codec::{self, EncodeOptions, OutputFormat};
 use crate::engine::{self, ImageKind, MetaCategory, Piece, Severity};
 use crate::error::{CoreError, CoreResult};
 use crate::export::unique_path;
+use crate::tiff::PrivateField;
 
 pub const NAME_SUFFIX: &str = "_AI-label-cleaned";
 
@@ -68,9 +69,21 @@ fn reencode(input: &Path, keep_icc: bool) -> CoreResult<(Vec<u8>, &'static str)>
 
 /// Writes a cleaned copy to `output`. With `avoid_overwrite` an existing file is never replaced
 /// (a number is added to the name); the original image is never replaced in either mode.
-pub fn clean(input: &Path, output: &Path, avoid_overwrite: bool, remove: &HashSet<MetaCategory>) -> CoreResult<CleanReport> {
-    let b = codec::read_file(input)?;
+/// `fields` are private details (location, device, author…) to remove even when their whole metadata block is kept.
+pub fn clean(
+    input: &Path,
+    output: &Path,
+    avoid_overwrite: bool,
+    remove: &HashSet<MetaCategory>,
+    fields: &HashSet<PrivateField>,
+) -> CoreResult<CleanReport> {
+    let original = codec::read_file(input)?;
+    let mut b = original.clone();
     let kind = engine::detect(&b);
+    let pending: HashSet<PrivateField> = fields.iter().copied().filter(|f| !f.is_covered_by(remove)).collect();
+    if !pending.is_empty() && matches!(kind, ImageKind::Jpeg | ImageKind::Png | ImageKind::Webp) {
+        b = crate::selective::process(input, &pending)?.data;
+    }
 
     let mut new_ext: Option<&str> = None;
     let removed_list: Vec<RemovedItem>;
@@ -113,7 +126,7 @@ pub fn clean(input: &Path, output: &Path, avoid_overwrite: bool, remove: &HashSe
     let rescan = analyzer::analyze(&target).ok();
     Ok(CleanReport {
         output: target.to_string_lossy().into_owned(),
-        before_bytes: b.len(),
+        before_bytes: original.len(),
         after_bytes: out_bytes.len(),
         removed: removed_list,
         reencoded,

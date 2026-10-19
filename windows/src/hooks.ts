@@ -1,4 +1,5 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { api } from "./api";
 
 /**
  * Runs `task` after `delay` ms of quiet whenever `deps` change. The task receives `cancelled()`, which turns
@@ -16,4 +17,16 @@ export function useDebouncedTask(task: (cancelled: () => boolean) => void | Prom
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
+}
+
+/** A larger copy of the selected image for the "Before" pane. */
+export function useBeforeImage(path: string | undefined, fallback: string | null | undefined, maxPixel = 900) {
+  const [src, setSrc] = useState<string | null>(null);
+  useEffect(() => {
+    let dead = false;
+    setSrc(null);
+    if (path) api.previewImage(path, maxPixel).then((s) => !dead && setSrc(s)).catch(() => undefined);
+    return () => { dead = true; };
+  }, [path, maxPixel]);
+  return src ?? fallback ?? null;
 }

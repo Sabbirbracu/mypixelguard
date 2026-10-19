@@ -28,7 +28,7 @@ fn main() {
     let jpg = dir.join("photo_meta.jpg");
     let out = std::env::temp_dir();
     let batch = export::export(&jpg, &out, "_x", |p| convert::process(p, &ConvertSettings { format: OutputFormat::Png, ..Default::default() }));
-    let cleaned = mpg_core::cleaner::clean(&jpg, &out.join("cleaned_demo.jpg"), true, &mpg_core::engine::MetaCategory::default_removal()).expect("clean");
+    let cleaned = mpg_core::cleaner::clean(&jpg, &out.join("cleaned_demo.jpg"), true, &mpg_core::engine::MetaCategory::default_removal(), &Default::default()).expect("clean");
     let preview = compress::preview(&jpg, &CompressSettings::default()).expect("preview");
     let plan = mpg_core::resize::plan((1600, 1000), &mpg_core::resize::ResizeSettings::default());
     let fixtures = json!({

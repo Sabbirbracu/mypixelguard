@@ -50,7 +50,7 @@ fn main() {
             let a = analyzer::analyze(&path).expect("analyze");
             let dir = args.get(2).map(PathBuf::from).unwrap_or_else(|| path.parent().unwrap().to_path_buf());
             let out = dir.join(cleaner::suggested_filename(&path, a.kind, a.has_alpha));
-            let r = cleaner::clean(&path, &out, true, &MetaCategory::default_removal()).expect("clean");
+            let r = cleaner::clean(&path, &out, true, &MetaCategory::default_removal(), &Default::default()).expect("clean");
             println!("wrote {}", r.output);
             println!("size {} → {}, decodes: {}, re-encoded: {}", byte_string(r.before_bytes), byte_string(r.after_bytes), r.decodes, r.reencoded);
             println!("kept orientation: {}", r.kept_orientation.map(|o| o.to_string()).unwrap_or("-".into()));

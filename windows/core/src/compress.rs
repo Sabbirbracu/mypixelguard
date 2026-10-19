@@ -150,7 +150,7 @@ pub fn preview(path: &std::path::Path, s: &CompressSettings) -> CoreResult<Previ
             curve.push((q, data.len()));
         }
     }
-    let thumb = codec::thumbnail_of(&processed.data, 560);
+    let thumb = codec::thumbnail_of(&processed.data, 900);
     Ok(Preview {
         output_bytes: processed.data.len(),
         original_bytes: info.file_size,

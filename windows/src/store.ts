@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { ask, open, save } from "@tauri-apps/plugin-dialog";
+import { ask, open } from "@tauri-apps/plugin-dialog";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { api } from "./api";
@@ -43,6 +43,8 @@ export interface FileItem {
   analysis: Analysis | null;
   analysisError: CoreError | null;
   status: FileStatus;
+  created?: number | null;
+  modified?: number | null;
 }
 
 export interface BatchState {
@@ -68,7 +70,8 @@ export const BUILT_IN_PRESETS: SizePreset[] = [
 const defaults = {
   convert: { format: "jpeg", quality: 0.9, background: [255, 255, 255], keepMetadata: false, suffix: "" } as ConvertSettings,
   resize: {
-    mode: "pixels", width: 1080, height: 1080, lockAspect: true, driver: "width", percent: 50, fit: "fit", neverEnlarge: false,
+    mode: "pixels", width: 1080, height: 1080, lockAspect: true, driver: "width", percent: 50, fit: "pad", borderAuto: true, anchor: [0.5, 0.5],
+    presetID: null, neverEnlarge: false,
     outputFormat: null, quality: 0.9, background: [255, 255, 255], keepMetadata: false, suffix: "_resized",
   } as ResizeSettings,
   compress: { format: null, quality: 0.75, useTargetSize: false, targetKB: 200, background: [255, 255, 255], keepMetadata: false, suffix: "_compressed" } as CompressSettings,
@@ -91,6 +94,10 @@ interface AppState {
 
   remove: MetaCategory[];
   selectiveFields: PrivateField[];
+  /** Private details the Clean tab removes on top of whole blocks. */
+  cleanFields: PrivateField[];
+  /** Folder the Clean tab saves into (remembered between launches). */
+  saveFolder: string | null;
   isCleaning: boolean;
   batch: BatchState | null;
 
@@ -118,6 +125,8 @@ interface AppState {
   patch: <K extends "convert" | "resize" | "compress" | "background" | "redact" | "ai">(key: K, value: Partial<AppState[K]>) => void;
   setRemove: (r: MetaCategory[]) => void;
   setSelectiveFields: (f: PrivateField[]) => void;
+  setCleanFields: (f: PrivateField[]) => void;
+  chooseSaveFolder: (fallback?: string) => Promise<string | null>;
   setApplyToAll: (v: boolean) => void;
 
   selected: () => FileItem | undefined;
@@ -139,6 +148,9 @@ interface AppState {
   cleanAll: () => Promise<void>;
   cancelCleaning: () => void;
 }
+
+/** Private details removed by default, matching what the recommended block removal already covers. */
+export const CLEAN_DEFAULT_FIELDS: PrivateField[] = ["location", "device", "author"];
 
 const NO_RECIPE: ImageRecipe = {
   id: "none", name: "", format: null, width: null, height: null, targetKB: null, quality: 0.82, cleanMetadata: true, suffix: "_ready", isBuiltIn: true,
@@ -172,6 +184,8 @@ export const useApp = create<AppState>((set, get) => ({
 
   remove: DEFAULT_REMOVAL,
   selectiveFields: ["location"],
+  cleanFields: [...CLEAN_DEFAULT_FIELDS],
+  saveFolder: lastDir() ?? null,
   isCleaning: false,
   batch: null,
 
@@ -245,7 +259,7 @@ export const useApp = create<AppState>((set, get) => ({
       for (let item = queue.shift(); item; item = queue.shift()) {
         try {
           const r = await api.scanFile(item.path);
-          if (r.analysis) update(item.id, { thumb: r.thumb, info: r.info, analysis: r.analysis, status: { kind: "ready" } });
+          if (r.analysis) update(item.id, { thumb: r.thumb, info: r.info, analysis: r.analysis, created: r.created, modified: r.modified, status: { kind: "ready" } });
           else if (r.info) update(item.id, { thumb: r.thumb, info: r.info, analysisError: r.analysisError, status: { kind: "ready" } });
           else update(item.id, { thumb: r.thumb, status: { kind: "failed", error: r.analysisError ?? { key: "err.unreadable", args: [] } } });
         } catch (e) {
@@ -274,6 +288,14 @@ export const useApp = create<AppState>((set, get) => ({
   patch: (key, value) => set((s) => ({ [key]: { ...(s[key] as object), ...(value as object) } }) as Partial<AppState>),
   setRemove: (remove) => set({ remove }),
   setSelectiveFields: (selectiveFields) => set({ selectiveFields }),
+  setCleanFields: (cleanFields) => set({ cleanFields }),
+  chooseSaveFolder: async (fallback) => {
+    const picked = await open({ directory: true, title: t("panel.chooseFolder.title"), defaultPath: get().saveFolder ?? fallback });
+    if (!picked || typeof picked !== "string") return null;
+    setLastDir(picked);
+    set({ saveFolder: picked });
+    return picked;
+  },
 
   // MARK: Derived
 
@@ -376,37 +398,23 @@ async function startCleaning(ids: string[]) {
     }
   }
 
+  const folder = s.saveFolder ?? (await s.chooseSaveFolder(dirName(targets[0].path)));
+  if (!folder) return;
   const plan: { id: string; input: string; output: string; avoid: boolean }[] = [];
-  if (targets.length === 1) {
-    const f = targets[0];
+  for (const f of targets) {
     const a = f.analysis!;
-    const name = await api.suggestCleanName(f.path, a.kind, a.has_alpha);
-    const ext = name.split(".").pop() ?? "jpg";
-    const dest = await save({
-      title: t("panel.saveCleaned.title"), defaultPath: joinPath(lastDir() ?? dirName(f.path), name), filters: [{ name: ext.toUpperCase(), extensions: [ext] }],
-    });
-    if (!dest) return;
-    setLastDir(dirName(dest));
-    plan.push({ id: f.id, input: f.path, output: dest, avoid: false });
-  } else {
-    const folder = await open({ directory: true, title: t("panel.chooseFolder.title"), defaultPath: lastDir() ?? dirName(targets[0].path) });
-    if (!folder || typeof folder !== "string") return;
-    setLastDir(folder);
-    for (const f of targets) {
-      const a = f.analysis!;
-      plan.push({ id: f.id, input: f.path, output: joinPath(folder, await api.suggestCleanName(f.path, a.kind, a.has_alpha)), avoid: true });
-    }
+    plan.push({ id: f.id, input: f.path, output: joinPath(folder, await api.suggestCleanName(f.path, a.kind, a.has_alpha)), avoid: true });
   }
 
   cancelCleanFlag = false;
   useApp.setState({ isCleaning: true });
   const setStatus = (id: string, status: FileStatus) =>
     useApp.setState((st) => ({ files: st.files.map((f) => (f.id === id ? { ...f, status } : f)) }));
-  const remove = useApp.getState().remove;
+  const { remove, cleanFields } = useApp.getState();
   for (const step of plan) {
     if (cancelCleanFlag) break;
     try {
-      const report = await api.cleanFile(step.input, step.output, step.avoid, remove);
+      const report = await api.cleanFile(step.input, step.output, step.avoid, remove, cleanFields);
       setStatus(step.id, { kind: "cleaned", report });
     } catch (e) {
       setStatus(step.id, { kind: "failed", error: typeof e === "object" && e && "key" in e ? (e as CoreError) : { key: "", args: [errorText(e)] } });

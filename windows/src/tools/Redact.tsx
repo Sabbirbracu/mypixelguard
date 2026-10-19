@@ -1,19 +1,26 @@
+// Redact & Share Safely: the image on the left, everything you can change on the right.
+// Faces and sensitive text are found automatically; you review them, pick a style, then export. Mirrors RedactView.swift.
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AlertTriangle, CheckCircle2, EyeOff, Grid3x3, Hand, Lightbulb, ListOrdered, Info, Lock, Droplet, Square, Brush, Scan, Send, Trash2, UserCheck, type LucideIcon } from "lucide-react";
+import { AlertTriangle, Check, Eye, EyeOff, Grid3x3, Info, Layers, Lightbulb, MoreHorizontal, ScanLine, ShieldCheck, SquareDashed, Trash2, Minus, Plus } from "lucide-react";
 import { api } from "../api";
 import { errorText, t } from "../i18n";
 import { useApp } from "../store";
-import { ActionFooter, Button, Card, CardHeader, Chip, NoticeCard, QualityRow, Select, SettingRow, Slider, Spinner, Switch, SuffixField, ToolHeader } from "../components/ui";
-import { BatchView, Page } from "../components/shell";
-import type { OutputFormat, RegionKind, SensitiveRegion } from "../types";
+import { BatchView } from "../components/shell";
+import { Button, Disclosure, FormatSelect, MenuButton, Slider, Spinner, SuffixField, Switch, Tip, ToolFooter, isLossy, useRunShortcut } from "../components/ui";
+import type { OutputFormat, SensitiveRegion } from "../types";
 
-const KIND_ICON: Record<RegionKind, LucideIcon> = { face: UserCheck, email: Send, phone: Send, address: Info, identifier: Info, licensePlate: Info, manual: Square };
 const STRENGTH: [number, number] = [8, 60];
 const level = (v: number) => (v < 20 ? "light" : v < 34 ? "medium" : v < 48 ? "strong" : "maximum");
 const labelOf = (r: SensitiveRegion) => (r.label.startsWith("t:") ? t(r.label.slice(2)) : r.label);
 
 export default function RedactView() {
   const item = useApp((s) => s.selected());
+  if (!item) return <div className="muted" style={{ flex: 1, display: "grid", placeItems: "center" }}>{t("detail.selectImage")}</div>;
+  return <RedactBody key={item.id} />;
+}
+
+function RedactBody() {
+  const item = useApp((s) => s.selected())!;
   const settings = useApp((s) => s.redact);
   const patch = useApp((s) => s.patch);
   const caps = useApp((s) => s.caps);
@@ -22,6 +29,7 @@ export default function RedactView() {
   const startBatch = useApp((s) => s.startBatch);
 
   const [regions, setRegions] = useState<SensitiveRegion[]>([]);
+  const [focused, setFocused] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
   const [hasScanned, setHasScanned] = useState(false);
   const [notes, setNotes] = useState<{ ocr: boolean; faces: boolean } | null>(null);
@@ -31,22 +39,41 @@ export default function RedactView() {
   const [showOriginal, setShowOriginal] = useState(false);
   const [rendering, setRendering] = useState(false);
   const [more, setMore] = useState(false);
+  const [drawMode, setDrawMode] = useState(true);
+  const [outlines, setOutlines] = useState(true);
+  const [zoom, setZoom] = useState<number | null>(null);
   const selectedCount = regions.filter((r) => r.isSelected).length;
-  const path = item?.path;
+  const path = item.path;
 
-  // Load a screen-sized copy whenever the image changes.
+  const scan = async () => {
+    setScanning(true); setError(null);
+    try {
+      const report = await api.redactScan(path);
+      // Keep anything the user drew by hand.
+      setRegions((cur) => {
+        const next = [...cur.filter((r) => r.kind === "manual"), ...report.regions];
+        setFocused(next[0]?.id ?? null);
+        return next;
+      });
+      setNotes({ ocr: report.textAvailable, faces: report.facesAvailable });
+      setShowOriginal(false);
+    } catch (e) { setError(errorText(e)); }
+    setHasScanned(true); setScanning(false);
+  };
+
+  // Load a screen-sized copy, then look for faces and text straight away.
   useEffect(() => {
     let dead = false;
-    setRegions([]); setError(null); setHasScanned(false); setPreview(null); setBase(null); setShowOriginal(false); setNotes(null);
-    if (path) api.redactBase(path).then((b) => !dead && setBase(b)).catch((e) => !dead && setError(errorText(e)));
+    api.redactBase(path).then((b) => { if (!dead) { setBase(b); void scan(); } }).catch((e) => !dead && setError(errorText(e)));
     return () => { dead = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [path]);
 
   // Re-draw the live preview with the exact style and strength used for export.
   const key = useMemo(() => JSON.stringify([regions, settings.style, settings.strength]), [regions, settings.style, settings.strength]);
   useEffect(() => {
     let dead = false;
-    if (!path || !base || selectedCount === 0) { setPreview(null); setRendering(false); return; }
+    if (!base || selectedCount === 0) { setPreview(null); setRendering(false); return; }
     const timer = window.setTimeout(async () => {
       setRendering(true);
       try {
@@ -59,20 +86,9 @@ export default function RedactView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, path, base]);
 
-  const scan = async () => {
-    if (!path) return;
-    setScanning(true); setError(null);
-    try {
-      const report = await api.redactScan(path);
-      setRegions((cur) => [...cur.filter((r) => r.kind === "manual"), ...report.regions]);
-      setNotes({ ocr: report.textAvailable, faces: report.facesAvailable });
-      setShowOriginal(false);
-    } catch (e) { setError(errorText(e)); }
-    setHasScanned(true); setScanning(false);
-  };
-
-  // MARK: canvas geometry
+  // MARK: Canvas geometry
   const boxRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
   const [box, setBox] = useState({ w: 0, h: 0 });
   useEffect(() => {
     const el = boxRef.current;
@@ -81,180 +97,214 @@ export default function RedactView() {
     ro.observe(el);
     setBox({ w: el.clientWidth, h: el.clientHeight });
     return () => ro.disconnect();
-  }, [base]);
-  const ratio = base ? base.width / base.height : 4 / 3;
-  const fit = box.w / Math.max(box.h, 1) > ratio ? { h: box.h, w: box.h * ratio } : { w: box.w, h: box.w / ratio };
-  const fitted = { x: (box.w - fit.w) / 2, y: (box.h - fit.h) / 2, w: fit.w, h: fit.h };
+  }, []);
+  const iw = base?.width ?? 4, ih = base?.height ?? 3;
+  const fit = Math.max(Math.min(box.w / iw, box.h / ih), 0.0001);
+  const unit = (item.analysis?.width ?? iw) / iw; // original pixels per preview pixel
+  const scale = zoom != null ? (unit * zoom) / 100 : fit;
+  const content = { w: Math.max(iw * scale, box.w), h: Math.max(ih * scale, box.h) };
+  const fitted = { x: (content.w - iw * scale) / 2, y: (content.h - ih * scale) / 2, w: iw * scale, h: ih * scale };
+  const percent = zoom ?? (fit / unit) * 100;
 
   const [drag, setDrag] = useState<{ x0: number; y0: number; x1: number; y1: number } | null>(null);
   const local = (e: React.PointerEvent) => {
-    const r = boxRef.current!.getBoundingClientRect();
+    const r = contentRef.current!.getBoundingClientRect();
     return { x: Math.min(Math.max(e.clientX - r.left, fitted.x), fitted.x + fitted.w), y: Math.min(Math.max(e.clientY - r.top, fitted.y), fitted.y + fitted.h) };
   };
-  const onDown = (e: React.PointerEvent) => { if (e.button !== 0) return; (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); const p = local(e); setDrag({ x0: p.x, y0: p.y, x1: p.x, y1: p.y }); };
+  const onDown = (e: React.PointerEvent) => { if (!drawMode || e.button !== 0) return; (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); const p = local(e); setDrag({ x0: p.x, y0: p.y, x1: p.x, y1: p.y }); };
   const onMove = (e: React.PointerEvent) => { if (drag) { const p = local(e); setDrag({ ...drag, x1: p.x, y1: p.y }); } };
   const onUp = () => {
     if (drag) {
       const x = Math.min(drag.x0, drag.x1), y = Math.min(drag.y0, drag.y1), w = Math.abs(drag.x1 - drag.x0), h = Math.abs(drag.y1 - drag.y0);
       if (w > 8 && h > 8) {
-        setRegions((r) => [...r, { id: `manual-${Date.now()}`, kind: "manual", rect: { x: (x - fitted.x) / fitted.w, y: (y - fitted.y) / fitted.h, w: w / fitted.w, h: h / fitted.h }, label: `t:visual.kind.manual`, confidence: 1, isSelected: true }]);
+        const id = `manual-${Date.now()}`;
+        setRegions((r) => [...r, { id, kind: "manual", rect: { x: (x - fitted.x) / fitted.w, y: (y - fitted.y) / fitted.h, w: w / fitted.w, h: h / fitted.h }, label: "t:visual.kind.manual", confidence: 1, isSelected: true }]);
+        setFocused(id);
         setShowOriginal(false);
       }
     }
     setDrag(null);
   };
   const toggle = (id: string) => setRegions((rs) => rs.map((r) => (r.id === id ? { ...r, isSelected: !r.isSelected } : r)));
-
-  if (!item) return <div className="muted" style={{ flex: 1, display: "grid", placeItems: "center" }}>{t("detail.selectImage")}</div>;
+  const removeRegion = (id: string) => { setRegions((rs) => rs.filter((r) => r.id !== id)); if (focused === id) setFocused(null); };
 
   const canCompare = selectedCount > 0 && preview != null;
-  const shown = !showOriginal && canCompare ? preview : base?.image ?? item.thumb;
-  const showsFill = showOriginal || preview == null;
-  const faces = regions.filter((r) => r.kind === "face").length;
-  const text = regions.filter((r) => r.kind !== "face" && r.kind !== "manual").length;
-  const manual = regions.filter((r) => r.kind === "manual").length;
+  const showingOriginal = showOriginal || !canCompare;
+  const shown = showingOriginal ? base?.image ?? item.thumb : preview;
   const lvl = level(settings.strength);
   const hasText = regions.some((r) => r.isSelected && r.kind !== "face" && r.kind !== "manual");
-  const styleName = settings.style === "solid" ? t("redact.style.solid") : `${t(`redact.style.${settings.style}`)} · ${t(`redact.strength.${lvl}`)}`;
-  const summary = selectedCount === 0 ? t("redact.summary.none") : `${t(selectedCount === 1 ? "redact.summary.one" : "redact.summary.many", selectedCount)} · ${styleName}`;
-  const format = settings.format ?? item.info?.format ?? "jpeg";
-  const styleTile = (style: "blur" | "pixelate" | "solid", Icon: LucideIcon) => (
-    <button key={style} type="button" className="style-tile" aria-pressed={settings.style === style} onClick={() => patch("redact", { style })}>
-      <div className="row">
-        <div className="opt-ico" style={{ ["--c" as string]: settings.style === style ? "var(--accent-text)" : "var(--secondary)" }}><Icon size={16} /></div>
-        <div className="spacer" />
-        {settings.style === style ? <CheckCircle2 size={18} color="var(--accent-text)" /> : <span style={{ width: 18, height: 18, borderRadius: "50%", border: "1.5px solid var(--secondary)", opacity: 0.6 }} />}
-      </div>
-      <div><div style={{ fontWeight: 600 }}>{t(`redact.style.${style}`)}</div><div className="caption">{t(`redact.style.${style}.about`)}</div></div>
-    </button>
-  );
+  const detail = settings.style === "solid" ? t("redact.cover.solid") : `${t(`redact.style.${settings.style}`)} · ${t(`redact.strength.${lvl}`)}`;
+  const summary = selectedCount === 0 ? t("redact.summary.none") : `${t(selectedCount === 1 ? "redact.summary.region.one" : "redact.summary.region.many", selectedCount)} · ${detail}`;
+  const format: OutputFormat = settings.format ?? item.info?.format ?? "jpeg";
+  const formats = (["jpeg", "png", "tiff", "webp"] as OutputFormat[]).filter((f) => caps?.formats.includes(f) ?? true);
+  const run = () => void startBatch("redact", settings, { targets: [item], extra: { regions } });
+  useRunShortcut(run, selectedCount > 0 && !running);
 
   return (
     <>
-      <Page>
-        <ToolHeader title={t("redact.title")} subtitle={t("redact.subtitle")} />
-        {batch?.tool === "redact" && <BatchView batch={batch} />}
-
-        <Card>
-          <div className="stack" style={{ gap: 14 }}>
-            <CardHeader icon={Scan} title={t("redact.step.find")} subtitle={t("redact.step.find.sub")}>
-              <Button disabled={scanning} onClick={() => void scan()}>{scanning ? <><Spinner small />{t("visual.scan.scanning")}</> : hasScanned ? t("visual.scan.again") : t("redact.scan")}</Button>
-            </CardHeader>
-            {hasScanned && regions.length === 0 && !error && <div className="row" style={{ color: "var(--success)", gap: 8 }}><CheckCircle2 size={16} />{t("visual.scan.none")}</div>}
-            {regions.length > 0 && (
-              <div className="row" style={{ gap: 8 }}>
-                {faces > 0 && <Chip text={t("visual.scan.faces", faces)} tone="warning" />}
-                {text > 0 && <Chip text={t("visual.scan.text", text)} tone="warning" />}
-                {manual > 0 && <Chip text={t("redact.manualCount", manual)} tone="info" />}
-              </div>
-            )}
-            {notes && !notes.ocr && <div className="caption row" style={{ gap: 6 }}><Info size={12} />{t("visual.noOCR")}</div>}
-            {notes && !notes.faces && <div className="caption row" style={{ gap: 6 }}><Info size={12} />{t("visual.noFaces")}</div>}
-            {error && <div className="row" style={{ color: "var(--danger)", gap: 8 }}><AlertTriangle size={15} />{error}</div>}
-            <div className="caption row" style={{ gap: 6 }}><Lock size={12} />{t("visual.scan.local")}</div>
-          </div>
-        </Card>
-
-        <Card>
-          <div className="stack" style={{ gap: 12 }}>
-            <div className="row">
-              <div className="segmented">
-                <button type="button" aria-pressed={!showOriginal} disabled={!canCompare} onClick={() => setShowOriginal(false)}>{t("redact.view.preview")}</button>
-                <button type="button" aria-pressed={showOriginal} disabled={!canCompare} onClick={() => setShowOriginal(true)}>{t("redact.view.original")}</button>
-              </div>
-              <div className="spacer" />
-              {rendering && <div className="caption row" style={{ gap: 6 }}><Spinner small />{t("redact.preview.updating")}</div>}
+      <div className="tool-split">
+        <div className="redact-col">
+          <div className="row" style={{ gap: 10 }}>
+            <div className="view-toggle">
+              <button type="button" aria-pressed={showingOriginal} onClick={() => setShowOriginal(true)}><Eye size={15} />{t("redact.view.original")}</button>
+              <button type="button" aria-pressed={!showingOriginal} disabled={!canCompare} onClick={() => setShowOriginal(false)}><EyeOff size={15} />{t("redact.view.preview")}</button>
             </div>
-            <div className="canvas" ref={boxRef} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={() => setDrag(null)}>
-              {shown && <div className="img-box" style={{ left: fitted.x, top: fitted.y, width: fitted.w, height: fitted.h }}><img src={shown} alt="" draggable={false} /></div>}
-              {regions.map((r, i) => (
-                <div key={r.id} className={`region ${r.isSelected ? (showsFill ? "fill" : "") : "off"}`} title={r.isSelected ? t("redact.box.skip") : t("redact.box.include")}
-                  style={{ left: fitted.x + r.rect.x * fitted.w, top: fitted.y + r.rect.y * fitted.h, width: r.rect.w * fitted.w, height: r.rect.h * fitted.h }}
-                  onPointerDown={(e) => e.stopPropagation()} onClick={() => toggle(r.id)}>
-                  <span className="num">{i + 1}</span>
-                </div>
-              ))}
+            <div className="spacer" />
+            {rendering && <span className="caption row" style={{ gap: 6 }}><Spinner small />{t("redact.preview.updating")}</span>}
+            <button type="button" className="tb-btn" aria-pressed={drawMode} title={t("redact.draw.help")} onClick={() => setDrawMode((v) => !v)}><SquareDashed size={15} />{t("redact.draw")}</button>
+            <button type="button" className="tb-btn icon" aria-pressed={outlines} title={t("redact.outlines")} aria-label={t("redact.outlines")} onClick={() => setOutlines((v) => !v)}><Layers size={15} /></button>
+          </div>
+
+          <div className={`redact-canvas ${zoom != null ? "zoomed" : ""}`} ref={boxRef}>
+            <div ref={contentRef} className={`content ${drawMode ? "draw" : ""}`} style={{ width: content.w, height: content.h }}
+              onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={() => setDrag(null)}>
+              {shown ? <img className="shot" src={shown} alt="" draggable={false} style={{ left: fitted.x, top: fitted.y, width: fitted.w, height: fitted.h }} />
+                : <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center" }}><Spinner /></div>}
+              {outlines && regions.map((r, i) => {
+                const accent = r.isSelected && (focused === r.id || showingOriginal);
+                return (
+                  <div key={r.id} className={`rbox ${r.isSelected ? "" : "off"} ${accent ? "accent" : ""} ${focused === r.id ? "focused" : ""} ${r.isSelected && showingOriginal ? "fill" : ""}`}
+                    title={t("redact.box.review")}
+                    style={{ left: fitted.x + r.rect.x * fitted.w, top: fitted.y + r.rect.y * fitted.h, width: r.rect.w * fitted.w, height: r.rect.h * fitted.h }}
+                    onPointerDown={(e) => e.stopPropagation()} onClick={() => setFocused(r.id)}>
+                    <span className="n">{i + 1}</span>
+                  </div>
+                );
+              })}
               {drag && <div className="drag-rect" style={{ left: Math.min(drag.x0, drag.x1), top: Math.min(drag.y0, drag.y1), width: Math.abs(drag.x1 - drag.x0), height: Math.abs(drag.y1 - drag.y0) }} />}
             </div>
-            <div className="caption row" style={{ gap: 6 }}><Hand size={12} />{regions.length === 0 ? t("redact.canvas.empty") : t("redact.canvas.hint")}</div>
           </div>
-        </Card>
 
-        {regions.length > 0 && (
-          <Card>
-            <div className="stack" style={{ gap: 12 }}>
-              <CardHeader icon={ListOrdered} title={t("redact.regions.title")} subtitle={t("redact.regions.count", selectedCount, regions.length)}>
-                <Button variant="secondary" disabled={selectedCount === regions.length} onClick={() => setRegions((rs) => rs.map((r) => ({ ...r, isSelected: true })))}>{t("redact.selectAll")}</Button>
-                <Button variant="secondary" disabled={selectedCount === 0} onClick={() => setRegions((rs) => rs.map((r) => ({ ...r, isSelected: false })))}>{t("redact.skipAll")}</Button>
-                <Button variant="secondary" onClick={() => setRegions([])}>{t("redact.removeAll")}</Button>
-              </CardHeader>
-              <div style={{ borderRadius: 12, background: "var(--canvas)", border: "1px solid var(--border)" }}>
-                {regions.map((r, i) => {
-                  const Icon = KIND_ICON[r.kind];
-                  const kindTitle = t(`visual.kind.${r.kind}`);
-                  return (
-                    <div key={r.id} className="region-row" style={{ opacity: r.isSelected ? 1 : 0.65 }}>
-                      <div className="num-badge" style={{ background: r.isSelected ? "var(--orange)" : "color-mix(in srgb, var(--secondary) 18%, transparent)", color: r.isSelected ? "var(--on-accent)" : "var(--secondary)" }}>{i + 1}</div>
-                      <Icon size={17} color={r.isSelected ? "var(--accent-text)" : "var(--secondary)"} />
-                      <div className="grow">
-                        <div style={{ fontWeight: 600 }}>{kindTitle}</div>
-                        <div className="caption truncate">
-                          {r.kind === "manual" ? t("redact.region.manual") : <>{labelOf(r) !== kindTitle && <>{labelOf(r)} · </>}{t("redact.region.match", Math.round(r.confidence * 100))}</>}
-                        </div>
-                      </div>
-                      {r.kind === "manual" && <button type="button" className="icon-btn bare" title={t("redact.region.delete")} aria-label={t("redact.region.delete")} onClick={() => setRegions((rs) => rs.filter((x) => x.id !== r.id))}><Trash2 size={15} /></button>}
-                      <Switch checked={r.isSelected} onChange={() => toggle(r.id)} label={kindTitle} />
-                    </div>
-                  );
-                })}
-              </div>
+          <div className="canvas-bar">
+            <Info size={15} color="var(--secondary)" style={{ flex: "none" }} />
+            <span className="muted grow">{drawMode ? t("redact.canvas.hint.draw") : t("redact.canvas.hint.select")}</span>
+            <MenuButton label={zoom == null ? t("inspect.zoom.fitShort") : t("inspect.zoom.custom")}
+              items={[{ label: t("inspect.zoom.fit"), onSelect: () => setZoom(null) }, ...[25, 50, 100, 200].map((v) => ({ label: `${v}%`, onSelect: () => setZoom(v) }))]} />
+            <div className="zoom-pill">
+              <button type="button" aria-label="−" onClick={() => setZoom(Math.max(5, percent / 1.25))}><Minus size={12} strokeWidth={3} /></button>
+              <span>{Math.round(percent)}%</span>
+              <button type="button" aria-label="+" onClick={() => setZoom(Math.min(800, percent * 1.25))}><Plus size={12} strokeWidth={3} /></button>
             </div>
-          </Card>
-        )}
+          </div>
+        </div>
 
-        <Card>
-          <div className="stack" style={{ gap: 16 }}>
-            <CardHeader icon={Brush} title={t("redact.step.style")} subtitle={t("redact.step.style.sub")} />
-            <div className="row" style={{ gap: 12, alignItems: "stretch" }}>{styleTile("blur", Droplet)}{styleTile("pixelate", Grid3x3)}{styleTile("solid", Square)}</div>
-            {settings.style !== "solid" && (
+        <aside className="side-panel">
+          {batch?.tool === "redact" && <BatchView batch={batch} />}
+
+          <div className="row top" style={{ gap: 12 }}>
+            <div className="grow stack" style={{ gap: 6 }}>
+              <h3 className="title3">{t("redact.detection.title")}</h3>
+              {error ? <div className="row" style={{ gap: 6, color: "var(--danger)" }}><AlertTriangle size={14} />{error}</div> : (
+                <div className="row muted" style={{ gap: 7 }}><span className="status-dot" style={{ background: scanning ? "var(--warning)" : "var(--success)" }} />{scanning ? t("redact.detection.scanning") : t("redact.detection.status")}</div>
+              )}
+              {notes && !notes.ocr && <div className="caption">{t("visual.noOCR")}</div>}
+              {notes && !notes.faces && <div className="caption">{t("visual.noFaces")}</div>}
+            </div>
+            <Button variant="secondary" disabled={scanning || !base} onClick={() => void scan()}>{scanning ? <Spinner small /> : <ScanLine size={15} />}{t("redact.rescan")}</Button>
+          </div>
+          <hr className="divider" />
+
+          <div className="section" style={{ gap: 12 }}>
+            <div className="row" style={{ gap: 8 }}>
+              <h3 className="title3">{t("redact.regions.title")}</h3>
+              <span className="tag" style={{ ["--tag" as string]: "var(--ink)" }}>{regions.length}</span>
+              <div className="spacer" />
+              <span className="muted">{t("redact.regions.included", selectedCount, regions.length)}</span>
+            </div>
+            {regions.length === 0 ? (
+              <div className="stack" style={{ gap: 8, padding: 14, borderRadius: 12, background: "var(--canvas)", border: "1px solid var(--border)" }}>
+                {hasScanned ? <ShieldCheck size={22} color="var(--success)" /> : <SquareDashed size={22} color="var(--secondary)" />}
+                <span className="muted">{hasScanned ? t("redact.regions.none") : t("redact.regions.empty")}</span>
+              </div>
+            ) : (
               <>
-                <div className="stack" style={{ gap: 8 }}>
-                  <div className="row"><b className="grow">{t("redact.strength")}</b><b style={{ color: "var(--accent-text)" }}>{t(`redact.strength.${lvl}`)}</b><span className="muted" style={{ width: 44, textAlign: "right" }}>{Math.round(((settings.strength - STRENGTH[0]) / (STRENGTH[1] - STRENGTH[0])) * 100)}%</span></div>
-                  <Slider value={settings.strength} min={STRENGTH[0]} max={STRENGTH[1]} step={1} onChange={(strength) => patch("redact", { strength })} label={t("redact.strength")} />
-                  <div className="row caption"><span>{t("redact.strength.light")}</span><div className="spacer" /><span>{t("redact.strength.maximum")}</span></div>
-                  <div className="caption row" style={{ gap: 6 }}><Info size={12} />{t("redact.strength.hint")}</div>
+                <div className="row" style={{ gap: 14, justifyContent: "flex-end" }}>
+                  <button type="button" className="link-btn" disabled={selectedCount === regions.length} onClick={() => setRegions((rs) => rs.map((r) => ({ ...r, isSelected: true })))}>{t("redact.selectAll")}</button>
+                  <button type="button" className="link-btn" disabled={selectedCount === 0} onClick={() => setRegions((rs) => rs.map((r) => ({ ...r, isSelected: false })))}>{t("redact.skipAll")}</button>
+                  <RegionMenu onRemoveAll={() => { setRegions([]); setFocused(null); }} />
                 </div>
-                {lvl === "light" ? <NoticeCard text={t("redact.tip.weak")} icon={AlertTriangle} tone="warning" /> : hasText ? <NoticeCard text={t("redact.tip.solid")} icon={Lightbulb} tone="info" /> : null}
+                <div className="stack" style={{ gap: 8 }}>
+                  {regions.map((r, i) => {
+                    const kindTitle = t(`visual.kind.${r.kind}`);
+                    const isFocused = focused === r.id;
+                    const subtitle = r.kind === "manual" ? t("redact.region.drawn") : labelOf(r) !== kindTitle ? labelOf(r) : t("redact.region.detected");
+                    return (
+                      <div key={r.id} className={`region-card ${isFocused ? "focused" : ""} ${r.isSelected ? "" : "skipped"}`} onClick={() => setFocused(r.id)}>
+                        <button type="button" role="checkbox" className="check-box" aria-checked={r.isSelected} aria-label={kindTitle} title={r.isSelected ? t("redact.box.skip") : t("redact.box.include")}
+                          onClick={(e) => { e.stopPropagation(); toggle(r.id); }}>{r.isSelected && <Check size={13} strokeWidth={4} />}</button>
+                        <span className={`num-circle ${isFocused && r.isSelected ? "on" : ""}`}>{i + 1}</span>
+                        <div className="grow" style={{ minWidth: 0 }}>
+                          <div className="truncate" style={{ fontWeight: 600 }}>{kindTitle}</div>
+                          <div className="caption truncate">{subtitle}</div>
+                        </div>
+                        <button type="button" className="icon-btn bare" title={t("redact.region.delete")} aria-label={t("redact.region.delete")} onClick={(e) => { e.stopPropagation(); removeRegion(r.id); }}><Trash2 size={15} /></button>
+                      </div>
+                    );
+                  })}
+                </div>
               </>
             )}
           </div>
-        </Card>
+          <hr className="divider" />
 
-        <Card>
-          <div className="stack" style={{ gap: 14 }}>
-            <CardHeader icon={Send} title={t("redact.step.export")} />
-            <SettingRow label={t("redact.cleanMetadata")} hint={t("redact.cleanMetadata.hint")}><Switch checked={settings.cleanMetadata} onChange={(cleanMetadata) => patch("redact", { cleanMetadata })} label={t("redact.cleanMetadata")} /></SettingRow>
-            <details open={more} onToggle={(e) => setMore((e.target as HTMLDetailsElement).open)}>
-              <summary style={{ cursor: "pointer", fontWeight: 500 }}>{t("redact.moreOptions")}</summary>
-              <div className="stack" style={{ gap: 14, paddingTop: 12 }}>
-                <SettingRow label={t("setting.outputFormat")}>
-                  <Select width={240} value={settings.format ?? ""} onChange={(v) => patch("redact", { format: (v || null) as OutputFormat | null })}>
-                    <option value="">{t("format.same")}</option>
-                    {(["jpeg", "png", "tiff", "webp"] as OutputFormat[]).filter((f) => caps?.formats.includes(f) ?? true).map((f) => <option key={f} value={f}>{f === "webp" ? "WebP" : f.toUpperCase()}</option>)}
-                  </Select>
-                </SettingRow>
-                <QualityRow quality={settings.quality} enabled={format === "jpeg" || format === "webp"} onChange={(quality) => patch("redact", { quality })} />
-                <SettingRow label={t("setting.suffix")}><SuffixField suffix={settings.suffix} onChange={(suffix) => patch("redact", { suffix })} example={`photo${settings.suffix}.jpg`} /></SettingRow>
-              </div>
-            </details>
+          <div className="section" style={{ gap: 12 }}>
+            <h3 className="title3">{t("redact.style.title")}</h3>
+            <div className="seg-box">
+              {(["blur", "pixelate", "solid"] as const).map((st) => <button key={st} type="button" aria-pressed={settings.style === st} onClick={() => patch("redact", { style: st })}>{t(`redact.style.${st}`)}</button>)}
+            </div>
+            <div><div>{t(`redact.style.${settings.style}.about`)}</div><div className="caption">{t("redact.applies")}</div></div>
+            {settings.style !== "solid" && (
+              <>
+                <div className="stack" style={{ gap: 6 }}>
+                  <div className="row"><b className="grow" style={{ fontWeight: 600 }}>{t("redact.strength")}</b><b style={{ color: "var(--accent-text)" }}>{t(`redact.strength.${lvl}`)}</b></div>
+                  <Slider value={settings.strength} min={STRENGTH[0]} max={STRENGTH[1]} step={1} onChange={(strength) => patch("redact", { strength })} label={t("redact.strength")} />
+                  <div className="range-labels"><span>{t("redact.strength.light")}</span><span>{t("redact.strength.maximum")}</span></div>
+                </div>
+                {lvl === "light" ? <Tip text={t("redact.tip.weak")} icon={AlertTriangle} tone="var(--warning)" /> : hasText ? <Tip text={t("redact.tip.solid")} icon={Lightbulb} tone="var(--info)" /> : null}
+              </>
+            )}
           </div>
-        </Card>
-        <NoticeCard text={t("redact.review")} icon={UserCheck} tone="warning" />
-      </Page>
-      <ActionFooter summary={summary} hint={t("export.hint")}>
-        {running && <Spinner small />}
-        <Button variant="large" icon={EyeOff} disabled={selectedCount === 0 || running} onClick={() => void startBatch("redact", settings, { targets: [item], extra: { regions } })}>{t("redact.run")}</Button>
-      </ActionFooter>
+          <hr className="divider" />
+
+          <div className="section" style={{ gap: 14 }}>
+            <h3 className="title3">{t("redact.export.title")}</h3>
+            <div className="toggle-row">
+              <div className="grow"><div style={{ fontWeight: 600 }}>{t("redact.metadata.title")}</div><div className="caption">{t("redact.metadata.hint")}</div></div>
+              <Switch checked={settings.cleanMetadata} onChange={(cleanMetadata) => patch("redact", { cleanMetadata })} label={t("redact.metadata.title")} />
+            </div>
+            <Disclosure title={t("redact.moreOptions")} open={more} onToggle={() => setMore((v) => !v)} />
+            {more && (
+              <div className="stack" style={{ gap: 14 }}>
+                <div className="stack" style={{ gap: 5 }}><span className="field-label">{t("setting.outputFormat")}</span><FormatSelect value={settings.format} formats={formats} onChange={(f) => patch("redact", { format: f })} /></div>
+                <div className="stack" style={{ gap: 5 }}>
+                  <span className="field-label">{t("setting.quality")}</span>
+                  <div className="row"><Slider value={settings.quality} min={0.05} max={1} disabled={!isLossy(format)} onChange={(quality) => patch("redact", { quality })} label={t("setting.quality")} /><span className="tnum" style={{ width: 40, textAlign: "right", color: isLossy(format) ? undefined : "var(--secondary)" }}>{Math.round(settings.quality * 100)}%</span></div>
+                  {!isLossy(format) && <span className="caption">{t("setting.quality.lossless")}</span>}
+                </div>
+                <div className="stack" style={{ gap: 5 }}><span className="field-label">{t("setting.suffix")}</span><SuffixField suffix={settings.suffix} onChange={(suffix) => patch("redact", { suffix })} example={`photo${settings.suffix}.jpg`} /></div>
+              </div>
+            )}
+          </div>
+          <div className="muted row top" style={{ gap: 8 }}><Info size={14} style={{ flex: "none", marginTop: 3 }} />{t("redact.detectionNote")}</div>
+        </aside>
+      </div>
+      <ToolFooter untouched={t("inspect.footer.untouched")} summaryIcon={Grid3x3} summary={summary} busy={running}>
+        <Button icon={EyeOff} disabled={selectedCount === 0 || running} onClick={run}>{t("redact.run")}</Button>
+      </ToolFooter>
     </>
+  );
+}
+
+function RegionMenu({ onRemoveAll }: { onRemoveAll: () => void }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div style={{ position: "relative" }}>
+      <button type="button" className="icon-btn bare" aria-label={t("workspace.more")} onClick={() => setOpen((v) => !v)}><MoreHorizontal size={16} /></button>
+      {open && (
+        <div className="menu" style={{ top: 24, right: 0 }} onMouseLeave={() => setOpen(false)}>
+          <button type="button" style={{ color: "var(--danger)" }} onClick={() => { setOpen(false); onRemoveAll(); }}><Trash2 size={15} />{t("redact.removeAll")}</button>
+        </div>
+      )}
+    </div>
   );
 }

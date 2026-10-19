@@ -181,10 +181,16 @@ pub fn salient_crop(img: &DynamicImage, ratio: f64) -> (u32, u32, u32, u32) {
     (x as u32, y as u32, width as u32, height as u32)
 }
 
-pub fn process(path: &std::path::Path, s: &AiSettings, segmenter: Option<&crate::background::Segmenter>) -> CoreResult<ProcessedImage> {
-    let info = codec::info(path)?;
-    let source = codec::load_image(path, None)?;
-    let mut image: Loaded = source.clone();
+impl AiSettings {
+    /// True when at least one image tool is switched on.
+    pub fn has_tool(&self) -> bool {
+        self.enhance || self.upscale || self.smart_crop || self.remove_background
+    }
+}
+
+/// Runs the enabled tools in pipeline order: crop, enhance, background, upscale.
+fn apply(source: Loaded, s: &AiSettings, segmenter: Option<&crate::background::Segmenter>, include_upscale: bool) -> CoreResult<(Loaded, Vec<Note>)> {
+    let mut image = source;
     let mut notes: Vec<Note> = Vec::new();
 
     if s.smart_crop {
@@ -206,12 +212,48 @@ pub fn process(path: &std::path::Path, s: &AiSettings, segmenter: Option<&crate:
             None => notes.push(Note::new("ai.note.backgroundUnavailable")),
         }
     }
-    if s.upscale {
+    if s.upscale && include_upscale {
         let factor = s.upscale_factor.clamp(2, 4);
         let resized = crate::resize_pixels(&image.image, image.width() * factor, image.height() * factor);
         image = image.with_image(resized);
         notes.push(Note::with("ai.note.upscaled", [factor]));
     }
+    Ok((image, notes))
+}
+
+/// A reduced-size render of the enabled tools for the live before/after.
+/// Upscale is left out of the pixels (it only adds detail-free size) and reported through `final_width`/`final_height`.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Preview {
+    /// Data URL of the result.
+    pub image: String,
+    pub final_width: u32,
+    pub final_height: u32,
+    pub notes: Vec<Note>,
+}
+
+pub fn preview(path: &std::path::Path, s: &AiSettings, segmenter: Option<&crate::background::Segmenter>, max_pixel: u32) -> CoreResult<Preview> {
+    let info = codec::info(path)?;
+    let source = codec::load_image(path, Some(max_pixel))?;
+    let source_width = source.width().max(1);
+    let (image, notes) = apply(source, s, segmenter, false)?;
+    let scale = info.width as f64 / source_width as f64;
+    let factor = if s.upscale { s.upscale_factor.clamp(2, 4) as f64 } else { 1.0 };
+    // Without a crop the final size is exact; with one it is scaled up from the reduced render.
+    let (w, h) = if s.smart_crop { (image.width() as f64 * scale, image.height() as f64 * scale) } else { (info.width as f64, info.height as f64) };
+    Ok(Preview {
+        image: crate::export_data_url(&image.image),
+        final_width: (w * factor).round() as u32,
+        final_height: (h * factor).round() as u32,
+        notes,
+    })
+}
+
+pub fn process(path: &std::path::Path, s: &AiSettings, segmenter: Option<&crate::background::Segmenter>) -> CoreResult<ProcessedImage> {
+    let info = codec::info(path)?;
+    let source = codec::load_image(path, None)?;
+    let (image, mut notes) = apply(source, s, segmenter, true)?;
 
     let mut format = s.format.unwrap_or_else(|| info.same_format());
     if s.remove_background && format == OutputFormat::Jpeg {

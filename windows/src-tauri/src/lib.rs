@@ -135,6 +135,9 @@ struct FileScan {
     info: Option<SourceInfo>,
     analysis: Option<Analysis>,
     analysis_error: Option<CoreError>,
+    /// File-system dates in milliseconds since 1970, for the Clean tab's file card.
+    created: Option<u64>,
+    modified: Option<u64>,
 }
 
 #[tauri::command]
@@ -147,7 +150,11 @@ async fn scan_file(path: String) -> CmdResult<FileScan> {
             Ok(a) => (Some(a), None),
             Err(e) => (None, Some(e)),
         };
-        FileScan { thumb, info, analysis, analysis_error }
+        let meta = std::fs::metadata(&p).ok();
+        let ms = |t: std::io::Result<std::time::SystemTime>| t.ok()?.duration_since(std::time::UNIX_EPOCH).ok().map(|d| d.as_millis() as u64);
+        let created = meta.as_ref().and_then(|m| ms(m.created()));
+        let modified = meta.as_ref().and_then(|m| ms(m.modified()));
+        FileScan { thumb, info, analysis, analysis_error, created, modified }
     })
     .await
     .map_err(|_| CoreError::encode_failed())
@@ -162,6 +169,9 @@ struct CleanRequest {
     output: String,
     avoid_overwrite: bool,
     remove: Vec<MetaCategory>,
+    /// Private details removed on top of whole blocks.
+    #[serde(default)]
+    fields: Vec<PrivateField>,
 }
 
 #[tauri::command]
@@ -173,7 +183,8 @@ async fn suggest_clean_name(path: String, kind: mpg_core::engine::ImageKind, has
 async fn clean_file(req: CleanRequest) -> CmdResult<CleanReport> {
     tauri::async_runtime::spawn_blocking(move || {
         let remove: HashSet<MetaCategory> = req.remove.into_iter().collect();
-        cleaner::clean(Path::new(&req.input), Path::new(&req.output), req.avoid_overwrite, &remove)
+        let fields: HashSet<PrivateField> = req.fields.into_iter().collect();
+        cleaner::clean(Path::new(&req.input), Path::new(&req.output), req.avoid_overwrite, &remove, &fields)
     })
     .await
     .map_err(|_| CoreError::encode_failed())?
@@ -302,6 +313,25 @@ async fn compress_preview(path: String, settings: CompressSettings) -> CmdResult
     tauri::async_runtime::spawn_blocking(move || compress::preview(Path::new(&path), &settings)).await.map_err(|_| CoreError::encode_failed())?
 }
 
+/// A larger copy of an image for the before/after panes (the scan's thumbnail is small).
+#[tauri::command]
+async fn preview_image(path: String, max_pixel: u32) -> CmdResult<String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let img = codec::load_image(Path::new(&path), Some(max_pixel.clamp(64, 4000)))?.image;
+        Ok(mpg_core::export_data_url(&img))
+    })
+    .await
+    .map_err(|_| CoreError::encode_failed())?
+}
+
+#[tauri::command]
+async fn ai_preview(state: State<'_, AppState>, path: String, settings: ai::AiSettings) -> CmdResult<ai::Preview> {
+    let seg = if settings.remove_background { state.segmenter().ok() } else { None };
+    tauri::async_runtime::spawn_blocking(move || ai::preview(Path::new(&path), &settings, seg.as_deref(), 900))
+        .await
+        .map_err(|_| CoreError::encode_failed())?
+}
+
 #[tauri::command]
 fn resize_plan(original: (u32, u32), settings: ResizeSettings) -> resize::Plan {
     resize::plan(original, &settings)
@@ -417,6 +447,8 @@ pub fn run() {
             convert_estimate,
             compress_preview,
             resize_plan,
+            preview_image,
+            ai_preview,
             background_preview,
             redact_base,
             redact_preview,

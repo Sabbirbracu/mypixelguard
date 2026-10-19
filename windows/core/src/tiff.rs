@@ -251,6 +251,16 @@ impl PrivateField {
     pub const ALL: [PrivateField; 5] =
         [PrivateField::Location, PrivateField::Device, PrivateField::Dates, PrivateField::Author, PrivateField::Software];
 
+    /// True when removing these whole metadata blocks already wipes this field, so no separate pass is needed.
+    pub fn is_covered_by(self, remove: &std::collections::HashSet<crate::engine::MetaCategory>) -> bool {
+        use crate::engine::MetaCategory::{Exif, Iptc, Xmp};
+        match self {
+            PrivateField::Location | PrivateField::Device => remove.contains(&Exif),
+            PrivateField::Author => remove.contains(&Exif) && remove.contains(&Xmp) && remove.contains(&Iptc),
+            PrivateField::Dates | PrivateField::Software => remove.contains(&Exif) && remove.contains(&Xmp),
+        }
+    }
+
     /// Whether a metadata key (lower-cased, letters and digits only) belongs to this field.
     /// Location is handled separately for EXIF because it removes the whole GPS directory.
     pub fn matches_key(self, key: &str) -> bool {

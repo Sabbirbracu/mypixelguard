@@ -1,4 +1,4 @@
-//! Port of `ImageResizeService.swift`: sizing maths (Fit / Fill / Stretch) and the export.
+//! Port of `ImageResizeService.swift` and `BorderFill.swift`: sizing maths (Fit / Fill / Stretch) and the export.
 
 use image::{DynamicImage, RgbaImage};
 use serde::{Deserialize, Serialize};
@@ -15,9 +15,12 @@ pub enum Mode {
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Fit {
-    Fit,
+    /// What the Resize tab offers as "Fit": the exact size, the whole picture inside, borders where the shapes differ.
+    Pad,
     Fill,
     Stretch,
+    /// Only shrinks the picture to fit (no borders); Batch Studio recipes use it.
+    Fit,
 }
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -36,6 +39,10 @@ pub struct ResizeSettings {
     pub driver: Driver,
     pub percent: f64,
     pub fit: Fit,
+    /// "Fit" borders take their colour from the picture's own edges (otherwise `background`).
+    pub border_auto: bool,
+    /// With "Fill": which part of the picture stays visible. (0, 0) is the top-left corner, (0.5, 0.5) the centre.
+    pub anchor: [f64; 2],
     pub never_enlarge: bool,
     pub output_format: Option<OutputFormat>,
     pub quality: f64,
@@ -53,7 +60,9 @@ impl Default for ResizeSettings {
             lock_aspect: true,
             driver: Driver::Width,
             percent: 50.0,
-            fit: Fit::Fit,
+            fit: Fit::Pad,
+            border_auto: true,
+            anchor: [0.5, 0.5],
             never_enlarge: false,
             output_format: None,
             quality: 0.9,
@@ -104,6 +113,13 @@ pub fn plan(original: (u32, u32), s: &ResizeSettings) -> Plan {
         (Mode::Pixels, false) => {
             let (tw, th) = (s.width.max(1) as f64, s.height.max(1) as f64);
             match s.fit {
+                Fit::Pad => {
+                    let f = (tw / ow).min(th / oh);
+                    cw = tw;
+                    ch = th;
+                    draw = DrawRect { x: (tw - ow * f) / 2.0, y: (th - oh * f) / 2.0, w: ow * f, h: oh * f };
+                    scale_up = f > 1.0;
+                }
                 Fit::Fit => {
                     let f = (tw / ow).min(th / oh);
                     cw = ow * f;
@@ -114,7 +130,8 @@ pub fn plan(original: (u32, u32), s: &ResizeSettings) -> Plan {
                     let f = (tw / ow).max(th / oh);
                     cw = tw;
                     ch = th;
-                    draw = DrawRect { x: (tw - ow * f) / 2.0, y: (th - oh * f) / 2.0, w: ow * f, h: oh * f };
+                    let (ax, ay) = (s.anchor[0].clamp(0.0, 1.0), s.anchor[1].clamp(0.0, 1.0));
+                    draw = DrawRect { x: (tw - ow * f) * ax, y: (th - oh * f) * ay, w: ow * f, h: oh * f };
                     scale_up = f > 1.0;
                 }
                 Fit::Stretch => {
@@ -143,8 +160,100 @@ pub fn plan(original: (u32, u32), s: &ResizeSettings) -> Plan {
     Plan { canvas_width: w, canvas_height: h, draw, enlarges: scale_up, unchanged: w == original.0 && h == original.1 }
 }
 
+// MARK: Edge-matched borders (BorderFill.swift)
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Bars {
+    /// Empty space at the left and right.
+    Sides,
+    /// Empty space at the top and bottom.
+    TopBottom,
+}
+
+/// Colours sampled along the two edges next to the bars, top-to-bottom (sides) or left-to-right (top/bottom).
+#[derive(Clone, Debug, PartialEq)]
+pub struct BorderSamples {
+    /// Along the first edge (left or top).
+    pub start: Vec<[u8; 3]>,
+    /// Along the opposite edge (right or bottom).
+    pub end: Vec<[u8; 3]>,
+}
+
+pub fn bars(plan: &Plan) -> Option<Bars> {
+    if plan.draw.w < plan.canvas_width as f64 - 0.5 {
+        Some(Bars::Sides)
+    } else if plan.draw.h < plan.canvas_height as f64 - 0.5 {
+        Some(Bars::TopBottom)
+    } else {
+        None
+    }
+}
+
+/// Averages `count` stretches of the picture's two outer pixel lines along each edge (on a 96 × 96 copy over white).
+pub fn border_samples(image: &DynamicImage, bars: Bars, count: usize) -> BorderSamples {
+    const N: usize = 96;
+    let small = crate::resize_pixels(image, N as u32, N as u32);
+    let rgb = crate::codec::flatten(&small, [255, 255, 255]);
+    let px = |x: usize, y: usize| rgb.get_pixel(x as u32, y as u32).0;
+    let step = (N / count).max(1);
+    let average = |points: Vec<(usize, usize)>| -> [u8; 3] {
+        let mut sum = [0f64; 3];
+        for &(x, y) in &points {
+            let p = px(x, y);
+            for c in 0..3 {
+                sum[c] += p[c] as f64;
+            }
+        }
+        let k = points.len().max(1) as f64;
+        [(sum[0] / k).round() as u8, (sum[1] / k).round() as u8, (sum[2] / k).round() as u8]
+    };
+    let along = |edge: &dyn Fn(usize) -> [(usize, usize); 2]| -> Vec<[u8; 3]> {
+        (0..count).map(|i| average((i * step..((i + 1) * step).min(N)).flat_map(|j| edge(j)).collect())).collect()
+    };
+    match bars {
+        Bars::Sides => BorderSamples { start: along(&|y| [(0, y), (1, y)]), end: along(&|y| [(N - 1, y), (N - 2, y)]) },
+        Bars::TopBottom => BorderSamples { start: along(&|x| [(x, 0), (x, 1)]), end: along(&|x| [(x, N - 1), (x, N - 2)]) },
+    }
+}
+
+/// Colour at `t` (0…1) of an evenly spaced gradient through `stops`.
+fn gradient_at(stops: &[[u8; 3]], t: f64) -> [u8; 3] {
+    if stops.len() < 2 {
+        return stops.first().copied().unwrap_or([255, 255, 255]);
+    }
+    let pos = t.clamp(0.0, 1.0) * (stops.len() - 1) as f64;
+    let i = (pos.floor() as usize).min(stops.len() - 2);
+    let f = pos - i as f64;
+    let (a, b) = (stops[i], stops[i + 1]);
+    [0, 1, 2].map(|c| (a[c] as f64 + (b[c] as f64 - a[c] as f64) * f).round() as u8)
+}
+
+/// Fills the canvas around the picture with gradients continuing its edges (opaque result).
+fn paint_bars(canvas: &mut RgbaImage, plan: &Plan, bars: Bars, samples: &BorderSamples) {
+    let (w, h) = (canvas.width(), canvas.height());
+    let (x0, y0) = (plan.draw.x.round().max(0.0) as u32, plan.draw.y.round().max(0.0) as u32);
+    let (x1, y1) = ((plan.draw.x + plan.draw.w).round().min(w as f64) as u32, (plan.draw.y + plan.draw.h).round().min(h as f64) as u32);
+    for y in 0..h {
+        for x in 0..w {
+            let colour = match bars {
+                Bars::Sides if x < x0 => gradient_at(&samples.start, y as f64 / h.max(2).saturating_sub(1) as f64),
+                Bars::Sides if x >= x1 => gradient_at(&samples.end, y as f64 / h.max(2).saturating_sub(1) as f64),
+                Bars::TopBottom if y < y0 => gradient_at(&samples.start, x as f64 / w.max(2).saturating_sub(1) as f64),
+                Bars::TopBottom if y >= y1 => gradient_at(&samples.end, x as f64 / w.max(2).saturating_sub(1) as f64),
+                _ => continue,
+            };
+            canvas.put_pixel(x, y, image::Rgba([colour[0], colour[1], colour[2], 255]));
+        }
+    }
+}
+
 /// Draws `source` scaled into a `plan` canvas. With `background` the result is opaque.
 pub fn render(source: &DynamicImage, plan: &Plan, background: Option<[u8; 3]>) -> DynamicImage {
+    render_with(source, plan, background, None)
+}
+
+/// Like `render`, with the empty space filled from the picture's own edge colours when `edges` is given.
+pub fn render_with(source: &DynamicImage, plan: &Plan, background: Option<[u8; 3]>, edges: Option<(Bars, &BorderSamples)>) -> DynamicImage {
     let (cw, ch) = (plan.canvas_width, plan.canvas_height);
     let dw = plan.draw.w.round().max(1.0) as u32;
     let dh = plan.draw.h.round().max(1.0) as u32;
@@ -153,10 +262,14 @@ pub fn render(source: &DynamicImage, plan: &Plan, background: Option<[u8; 3]>) -
         return scaled;
     }
     let mut canvas = RgbaImage::new(cw, ch);
+    let background = if edges.is_some() { background.or(Some([255, 255, 255])) } else { background };
     if let Some(bg) = background {
         for p in canvas.pixels_mut() {
             *p = image::Rgba([bg[0], bg[1], bg[2], 255]);
         }
+    }
+    if let Some((bars, samples)) = edges {
+        paint_bars(&mut canvas, plan, bars, samples);
     }
     let (ox, oy) = (plan.draw.x.round() as i64, plan.draw.y.round() as i64);
     // `overlay` composites with alpha, which is right for both opaque and transparent sources.
@@ -183,9 +296,12 @@ pub fn process(path: &std::path::Path, s: &ResizeSettings) -> CoreResult<Process
     let resized: Loaded = if p.unchanged {
         source
     } else {
-        // Fill/crop on a format without transparency can leave no gaps, so only flatten when needed.
-        let bg = if format.supports_alpha() { None } else { Some(s.background) };
-        let img = render(&source.image, &p, bg);
+        // Borders and flattened transparency take the background colour, unless the picture itself can stay transparent.
+        let keeps_transparency = format.supports_alpha() && info.has_alpha;
+        let bg = if keeps_transparency { None } else { Some(s.background) };
+        let edge_bars = (s.border_auto && !keeps_transparency).then(|| bars(&p)).flatten();
+        let samples = edge_bars.map(|b| border_samples(&source.image, b, 12));
+        let img = render_with(&source.image, &p, bg, edge_bars.zip(samples.as_ref()));
         source.with_image(img)
     };
     let mut o = EncodeOptions::new(format);

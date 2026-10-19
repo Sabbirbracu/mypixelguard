@@ -139,7 +139,7 @@ fn cleaning_removes_metadata_but_never_touches_pixels() {
     let dir = temp_dir("clean");
     let input = dir.join("photo.jpg");
     std::fs::write(&input, &src).unwrap();
-    let report = cleaner::clean(&input, &dir.join("out.jpg"), true, &MetaCategory::default_removal()).unwrap();
+    let report = cleaner::clean(&input, &dir.join("out.jpg"), true, &MetaCategory::default_removal(), &Default::default()).unwrap();
     let out = std::fs::read(&report.output).unwrap();
 
     let after = analyzer::analyze_bytes(&out).unwrap();
@@ -320,4 +320,60 @@ fn webp_metadata_helpers_produce_valid_files() {
     let pieces = engine::parse(&bytes, ImageKind::Webp).unwrap();
     assert!(pieces.iter().any(|p| p.category == Some(MetaCategory::Exif)));
     assert_eq!(codec::load_from_bytes(&bytes, None).unwrap().width(), 32);
+}
+
+#[test]
+fn clean_removes_chosen_fields_inside_kept_blocks() {
+    let src = jpeg_with_metadata();
+    let dir = temp_dir("clean-fields");
+    let input = dir.join("photo.jpg");
+    std::fs::write(&input, &src).unwrap();
+    // Keep EXIF as a block, but take the location out of it.
+    let remove: HashSet<MetaCategory> = [MetaCategory::C2pa].into_iter().collect();
+    let fields: HashSet<PrivateField> = [PrivateField::Location].into_iter().collect();
+    assert!(!PrivateField::Location.is_covered_by(&remove));
+    let report = cleaner::clean(&input, &dir.join("out.jpg"), true, &remove, &fields).unwrap();
+    let after = analyzer::analyze_bytes(&std::fs::read(&report.output).unwrap()).unwrap();
+    assert!(!after.groups.iter().any(|g| g.title == "GPS location"), "location removed");
+    assert!(after.metadata_pieces().iter().any(|p| p.category == Some(MetaCategory::Exif)), "EXIF block kept");
+    assert_eq!(report.before_bytes, src.len());
+    assert_eq!(decoded(&src), decoded(&std::fs::read(&report.output).unwrap()));
+    // Whole-block removal already covers it.
+    assert!(PrivateField::Location.is_covered_by(&MetaCategory::default_removal()));
+}
+
+#[test]
+fn resize_pad_keeps_the_exact_size_with_edge_borders() {
+    let s = ResizeSettings { width: 1000, height: 1000, lock_aspect: false, ..Default::default() };
+    assert_eq!(s.fit, Fit::Pad, "Pad is the Resize tab's default");
+    let p = resize::plan((2000, 1000), &s);
+    assert_eq!((p.canvas_width, p.canvas_height), (1000, 1000));
+    assert_eq!((p.draw.x, p.draw.y, p.draw.w, p.draw.h), (0.0, 250.0, 1000.0, 500.0));
+    assert_eq!(resize::bars(&p), Some(resize::Bars::TopBottom));
+
+    // A red-top / blue-bottom picture: the top border continues red, the bottom one blue.
+    let mut img = RgbImage::new(200, 100);
+    for (_, y, px) in img.enumerate_pixels_mut() {
+        *px = if y < 50 { image::Rgb([220, 20, 20]) } else { image::Rgb([20, 20, 220]) };
+    }
+    let src = DynamicImage::ImageRgb8(img);
+    let p = resize::plan((200, 100), &ResizeSettings { width: 100, height: 100, lock_aspect: false, ..Default::default() });
+    let samples = resize::border_samples(&src, resize::Bars::TopBottom, 12);
+    let out = resize::render_with(&src, &p, Some([255, 255, 255]), Some((resize::Bars::TopBottom, &samples))).to_rgb8();
+    assert_eq!((out.width(), out.height()), (100, 100));
+    let top = out.get_pixel(50, 5).0;
+    let bottom = out.get_pixel(50, 95).0;
+    assert!(top[0] > 180 && top[2] < 60, "top border is red: {top:?}");
+    assert!(bottom[2] > 180 && bottom[0] < 60, "bottom border is blue: {bottom:?}");
+}
+
+#[test]
+fn resize_fill_anchor_picks_the_visible_part() {
+    let mut s = ResizeSettings { width: 1000, height: 1000, lock_aspect: false, fit: Fit::Fill, ..Default::default() };
+    s.anchor = [0.0, 0.5];
+    assert_eq!(resize::plan((2000, 1000), &s).draw.x, 0.0, "left edge kept");
+    s.anchor = [1.0, 0.5];
+    assert_eq!(resize::plan((2000, 1000), &s).draw.x, -1000.0, "right edge kept");
+    s.anchor = [0.5, 0.0];
+    assert_eq!(resize::plan((1000, 2000), &s).draw.y, 0.0, "top kept");
 }

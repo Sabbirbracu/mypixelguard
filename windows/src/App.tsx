@@ -3,6 +3,7 @@ import { useApp } from "./store";
 import { t } from "./i18n";
 import { TOOLS, type Tool } from "./types";
 import { EmptyState, SettingsDialog, Sidebar, WorkspaceBar } from "./components/shell";
+import InspectView from "./tools/Inspect";
 import CleanView from "./tools/Clean";
 import RedactView from "./tools/Redact";
 import ConvertView from "./tools/Convert";
@@ -14,8 +15,8 @@ import AiToolsView from "./tools/AiTools";
 
 function ToolDetail({ tool }: { tool: Tool }) {
   switch (tool) {
-    case "inspect": return <CleanView mode="inspect" />;
-    case "clean": return <CleanView mode="clean" />;
+    case "inspect": return <InspectView />;
+    case "clean": return <CleanView />;
     case "redact": return <RedactView />;
     case "convert": return <ConvertView />;
     case "resize": return <ResizeView />;

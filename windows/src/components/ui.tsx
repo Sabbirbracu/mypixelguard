@@ -1,8 +1,8 @@
-import { useEffect, type CSSProperties, type ReactNode } from "react";
-import { AlertTriangle, Info, type LucideIcon } from "lucide-react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { AlertTriangle, ChevronDown, ChevronRight, Info, Lock, type LucideIcon } from "lucide-react";
 import { t } from "../i18n";
 import { hexOf, rgbOf } from "../format";
-import type { RGB } from "../types";
+import type { OutputFormat, RGB } from "../types";
 
 export const toneColor = {
   success: "var(--success)", warning: "var(--warning)", danger: "var(--danger)", info: "var(--info)",
@@ -186,6 +186,109 @@ export function ActionFooter({ summary, hint, children }: { summary: string; hin
         </div>
         {children}
       </div>
+    </div>
+  );
+}
+
+// MARK: Redesign building blocks
+
+export const FORMAT_NAMES: Record<OutputFormat, string> = { jpeg: "JPEG", png: "PNG", tiff: "TIFF", webp: "WebP" };
+export const isLossy = (f: OutputFormat) => f === "jpeg" || f === "webp";
+
+/** Runs `onRun` on Ctrl+Enter while `enabled`, like ⌘↩ on the Mac. */
+export function useRunShortcut(onRun: () => void, enabled: boolean) {
+  const latest = useRef(onRun);
+  latest.current = onRun;
+  useEffect(() => {
+    if (!enabled) return;
+    const h = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); latest.current(); }
+    };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, [enabled]);
+}
+
+/** Pinned bar under a tool: "original stays untouched" on the left, what will happen and the main button on the right. */
+export function ToolFooter({ untouched, summary, summaryIcon: SIcon, busy, children, wide, shadow }: {
+  untouched: string; summary?: ReactNode; summaryIcon?: LucideIcon; busy?: boolean; children: ReactNode; wide?: boolean; shadow?: boolean;
+}) {
+  return (
+    <div className={`tool-footer ${shadow ? "shadow" : ""}`}>
+      <div className={`inner ${wide ? "wide" : ""}`}>
+        <div className="untouched"><Lock size={15} />{untouched}</div>
+        <div className="spacer" />
+        {summary != null && <div className="summary">{SIcon && <SIcon size={16} style={{ flex: "none" }} />}<span className="truncate">{summary}</span></div>}
+        {summary != null && <div className="spacer" />}
+        {busy && <Spinner small />}
+        {children}
+      </div>
+    </div>
+  );
+}
+
+export function StagePane({ label, after, caption, children, spinning }: { label: string; after?: boolean; caption?: string | null; children?: ReactNode; spinning?: boolean }) {
+  return (
+    <div className="stage-pane">
+      {children}
+      <span className={`label ${after ? "after" : ""}`}>{label}</span>
+      {spinning && <span className="corner-spin"><Spinner small /></span>}
+      {caption && <span className="caption-pill">{caption}</span>}
+    </div>
+  );
+}
+
+export function Disclosure({ title, open, onToggle }: { title: string; open: boolean; onToggle: () => void }) {
+  return (
+    <button type="button" className="disclosure" aria-expanded={open} onClick={onToggle}>
+      <ChevronRight size={13} strokeWidth={3} /><span>{title}</span>
+    </button>
+  );
+}
+
+export function ToggleRow({ title, hint, checked, onChange, big }: { title: string; hint?: string; checked: boolean; onChange: (v: boolean) => void; big?: boolean }) {
+  return (
+    <div className="toggle-row">
+      <div className="grow">
+        <div className={big ? "title3" : ""} style={big ? undefined : { fontWeight: 600 }}>{title}</div>
+        {hint && <div className={big ? "muted" : "caption"}>{hint}</div>}
+      </div>
+      <Switch checked={checked} onChange={onChange} label={title} />
+    </div>
+  );
+}
+
+export function FormatSelect({ value, onChange, formats, same = true }: { value: OutputFormat | null; onChange: (v: OutputFormat | null) => void; formats: OutputFormat[]; same?: boolean }) {
+  return (
+    <select value={value ?? ""} onChange={(e) => onChange((e.target.value || null) as OutputFormat | null)} aria-label={t("setting.outputFormat")}>
+      {same && <option value="">{t("format.same")}</option>}
+      {formats.map((f) => <option key={f} value={f}>{FORMAT_NAMES[f]}</option>)}
+    </select>
+  );
+}
+
+export function Tip({ text, icon: Icon, tone }: { text: string; icon: LucideIcon; tone: string }) {
+  return <div className="tip" style={{ ["--tip" as string]: tone }}><Icon size={14} /><span>{text}</span></div>;
+}
+
+/** A small button that opens a menu of choices (the Mac's borderless Menu). */
+export function MenuButton({ label, items }: { label: string; items: { label: string; onSelect: () => void }[] }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const h = (e: MouseEvent) => ref.current && !ref.current.contains(e.target as Node) && setOpen(false);
+    window.addEventListener("mousedown", h);
+    return () => window.removeEventListener("mousedown", h);
+  }, [open]);
+  return (
+    <div className="menu-btn" ref={ref}>
+      <button type="button" className="trigger" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((v) => !v)}>{label}<ChevronDown size={12} /></button>
+      {open && (
+        <div className="menu" role="menu" style={{ bottom: 34, left: 0, minWidth: 160 }}>
+          {items.map((it) => <button key={it.label} type="button" role="menuitem" onClick={() => { setOpen(false); it.onSelect(); }}>{it.label}</button>)}
+        </div>
+      )}
     </div>
   );
 }
