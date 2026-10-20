@@ -10,6 +10,8 @@ import { byteString, percentSaved } from "../format";
 import { useApp, type BatchState, type FileItem } from "../store";
 import { TOOLS, type BatchResult, type Tool } from "../types";
 import { Button, Callout, Card, Chip, Modal, NoticeCard, ProgressBar, Segmented, Spinner, Switch, toneColor } from "./ui";
+import { UpdateBanner } from "./services";
+import { useServices } from "../services";
 import markLight from "../assets/brand/MyPixelGuard-Mark-Light.svg";
 import markDark from "../assets/brand/MyPixelGuard-Mark-Dark.svg";
 
@@ -62,6 +64,7 @@ export function Sidebar({ onSettings }: { onSettings: () => void }) {
         })}
       </nav>
       <div className="spacer" />
+      <UpdateBanner />
       <div className="privacy-badge">
         <Lock size={15} color="var(--success)" style={{ flex: "none", marginTop: 2 }} />
         <div>
@@ -332,6 +335,7 @@ function ResultRow({ r }: { r: BatchResult }) {
 
 export function SettingsDialog({ onClose }: { onClose: () => void }) {
   const { lang, setLang, appearance, setAppearance, caps } = useApp();
+  const openFeedback = useServices((st) => st.openFeedback);
   return (
     <Modal onClose={onClose} width={560}>
       <div className="pad stack" style={{ gap: 18 }}>
@@ -352,10 +356,36 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
           <div className="caption">{t("brand.tagline")}</div>
           <div className="h-sub">{t("settings.privacy.title")}</div>
           <div className="muted">{t("settings.privacy.body")}</div>
-          <div className="caption">{t("settings.version", caps?.version ?? "dev")}</div>
+        </div>
+        <hr className="divider" />
+        <ServiceSettings />
+        <div className="row">
+          <div className="caption grow">{t("settings.version", caps?.version ?? "dev")}</div>
+          <Button variant="secondary" onClick={() => { onClose(); openFeedback(); }}>{t("settings.feedback")}</Button>
         </div>
       </div>
     </Modal>
+  );
+}
+
+function ServiceSettings() {
+  const { checkUpdates, setCheckUpdates, shareUsage, setShareUsage, pending } = useServices();
+  // The next weekly report, in words — so people can see exactly what would be sent.
+  const tools = Object.entries(pending).filter(([k]) => k.startsWith("tool.")).sort((a, b) => b[1] - a[1])
+    .filter(([k]) => (TOOLS as string[]).includes(k.slice(5))).map(([k, v]) => `${t(`tool.${k.slice(5)}`)} ${v}`);
+  const pendingText = [t("settings.usage.opens", pending.opens ?? 0), t("settings.usage.saved", pending.saved ?? 0), ...tools].join(" · ");
+  return (
+    <div className="stack" style={{ gap: 14 }}>
+      <div className="stack" style={{ gap: 4 }}>
+        <label className="settings-toggle"><span className="grow" style={{ fontWeight: 500 }}>{t("settings.updates.toggle")}</span><Switch checked={checkUpdates} onChange={setCheckUpdates} label={t("settings.updates.toggle")} /></label>
+        <div className="caption">{t("settings.updates.note")}</div>
+      </div>
+      <div className="stack" style={{ gap: 4 }}>
+        <label className="settings-toggle"><span className="grow" style={{ fontWeight: 500 }}>{t("settings.usage.toggle")}</span><Switch checked={shareUsage} onChange={setShareUsage} label={t("settings.usage.toggle")} /></label>
+        <div className="caption">{t("settings.usage.note")}</div>
+        {shareUsage && <div className="caption">{t("settings.usage.pending", pendingText)}</div>}
+      </div>
+    </div>
   );
 }
 

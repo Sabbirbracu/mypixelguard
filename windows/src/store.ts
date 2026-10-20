@@ -3,6 +3,7 @@ import { ask, open } from "@tauri-apps/plugin-dialog";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { api } from "./api";
+import { useServices } from "./services";
 import { errorText, setLanguage, t, type Lang, currentLanguage } from "./i18n";
 import { dirName, fileName, joinPath } from "./format";
 import {
@@ -209,6 +210,8 @@ export const useApp = create<AppState>((set, get) => ({
       set((s) => (s.batch ? { batch: { ...s.batch, current: e.payload.current, index: e.payload.index } } : s));
     });
     await listen<BatchResult>("batch-result", (e) => {
+      const tool = get().batch?.tool;
+      if (tool) useServices.getState().recordSave(tool, !!e.payload.output && !e.payload.error);
       set((s) => (s.batch ? { batch: { ...s.batch, results: [...s.batch.results, e.payload] } } : s));
     });
     await listen<boolean>("batch-done", (e) => {
@@ -416,7 +419,9 @@ async function startCleaning(ids: string[]) {
     try {
       const report = await api.cleanFile(step.input, step.output, step.avoid, remove, cleanFields);
       setStatus(step.id, { kind: "cleaned", report });
+      useServices.getState().recordSave("clean", true);
     } catch (e) {
+      useServices.getState().recordSave("clean", false);
       setStatus(step.id, { kind: "failed", error: typeof e === "object" && e && "key" in e ? (e as CoreError) : { key: "", args: [errorText(e)] } });
     }
   }

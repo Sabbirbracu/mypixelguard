@@ -62,6 +62,9 @@ export async function installMock() {
       case "redact_preview": await delay(150); return fx.faceDemo;
       case "redact_scan": await delay(600); return { regions: demoRegions, recognizedTextCount: 9, textAvailable: true, facesAvailable: true };
       case "write_text_file": return null;
+      // `?mock&update` shows the update card; nothing leaves the browser.
+      case "service_update_manifest": return { version: new URLSearchParams(location.search).has("update") ? "1.1" : "1.0", url: "https://mypixelguard.agentiqbd.com/download/windows/", notes: { en: "", bn: "" }, current: "1.0.0" };
+      case "service_send_stats": case "service_send_feedback": console.info("[mock] would send", cmd, args); return true;
       case "plugin:dialog|open": return args.options?.directory ? "C:\\Users\\demo\\Pictures\\Cleaned" : ["demo"];
       case "plugin:dialog|save": return "C:\\Users\\demo\\Pictures\\out.jpg";
       case "plugin:dialog|ask": case "plugin:dialog|confirm": return true;

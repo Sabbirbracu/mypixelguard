@@ -2,7 +2,13 @@
 
 The Windows edition of MyPixelGuard — *Your Images. Your Privacy. Your Control.* Same nine tools as the Mac
 app (Inspect, Clean, Redact, Convert, Resize, Compress, Remove Background, Batch Studio, AI Tools), the same
-English / বাংলা text, the same brand. Everything runs on the PC; the app has no network code.
+English / বাংলা text, the same brand. Images are processed on the PC and never uploaded.
+
+The app's only network use (`src-tauri/src/services.rs`, all to mypixelguard.agentiqbd.com, same as the Mac app): an update
+check of `version.json` on launch (Settings can turn it off; it only shows a download link, nothing is installed
+automatically), a weekly anonymous usage report only after the user agrees in the first-run question (app and Windows
+version, language, open/save counts per tool — never images, file names or metadata), and feedback only when the user
+presses Send.
 
 | Layer | What | Where |
 |---|---|---|

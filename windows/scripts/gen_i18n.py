@@ -57,6 +57,9 @@ OVERRIDES_EN = {
     "ai.background": "Remove background",
     "inspect.scan.local": "Runs locally on this PC.",
     "redact.detection.scanning": "Scanning on this PC…",
+    "consent.yes": "Sent: app version, Windows version, language, how often the app was opened and which tools saved images.",
+    "feedback.note": "Sent with only the app version, Windows version and language — no photos and no personal details.",
+    "settings.usage.note": "App version, Windows version, language, how often the app was opened and which tools saved images. Never photos, file names or metadata. Turning this off deletes what was collected.",
 }
 OVERRIDES_BN = {
     "privacy.badge": "সবকিছু আপনার PC-তেই হয়। কিছুই আপলোড হয় না।",
@@ -80,6 +83,9 @@ OVERRIDES_BN = {
     "settings.privacy.body": "ছবি শুধু এই PC-তেই খোলা, বদলানো আর Save করা হয়। অ্যাপ কোনো ছবি বা Metadata আপলোড করে না, এমনকি ইন্টারনেটও লাগে না।",
     "inspect.scan.local": "আপনার PC-তেই চলে।",
     "redact.detection.scanning": "আপনার PC-তে খোঁজা হচ্ছে…",
+    "consent.yes": "যা যায়: App-এর Version, Windows Version, ভাষা, App কতবার খোলা হয়েছে আর কোন Tool দিয়ে ছবি Save হয়েছে।",
+    "feedback.note": "সাথে যায় শুধু App Version, Windows Version আর ভাষা — কোনো ছবি বা ব্যক্তিগত তথ্য না।",
+    "settings.usage.note": "App Version, Windows Version, ভাষা, App কতবার খোলা হয়েছে আর কোন Tool দিয়ে ছবি Save হয়েছে। কখনো ছবি, ফাইলের নাম বা Metadata না। Off করলে জমা হওয়া তথ্য মুছে যায়।",
 }
 
 # Strings that only exist on Windows (the Swift app hard-codes some of these in English).

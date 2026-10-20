@@ -10,6 +10,6 @@
     "dialog:allow-ask",
     "dialog:allow-confirm",
     "opener:allow-reveal-item-in-dir",
-    { "identifier": "opener:allow-open-url", "allow": [{ "url": "https://www.openstreetmap.org/*" }] }
+    { "identifier": "opener:allow-open-url", "allow": [{ "url": "https://www.openstreetmap.org/*" }, { "url": "https://mypixelguard.agentiqbd.com/*" }, { "url": "https://agentiqbd.com/*" }] }
   ]
 }

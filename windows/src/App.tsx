@@ -12,6 +12,8 @@ import CompressView from "./tools/Compress";
 import BackgroundView from "./tools/Background";
 import StudioView from "./tools/Studio";
 import AiToolsView from "./tools/AiTools";
+import { useServices } from "./services";
+import { FeedbackDialog, UsageConsentDialog } from "./components/services";
 
 function ToolDetail({ tool }: { tool: Tool }) {
   switch (tool) {
@@ -36,7 +38,9 @@ export default function App() {
   const chooseImages = useApp((s) => s.chooseImages);
   const [settings, setSettings] = useState(false);
 
-  useEffect(() => { void init(); }, [init]);
+  const showConsent = useServices((s) => s.showConsent);
+  const showFeedback = useServices((s) => s.showFeedback);
+  useEffect(() => { void init(); void useServices.getState().appLaunched(); }, [init]);
 
   // Ctrl+1…9 switch tools, Ctrl+O adds images.
   useEffect(() => {
@@ -59,6 +63,8 @@ export default function App() {
         <div className="drop-overlay" id="drop-overlay" style={{ display: "none" }}>{t("drop.hint")}</div>
       </main>
       {settings && <SettingsDialog onClose={() => setSettings(false)} />}
+      {showConsent && <UsageConsentDialog />}
+      {!showConsent && showFeedback && <FeedbackDialog />}
     </div>
   );
 }

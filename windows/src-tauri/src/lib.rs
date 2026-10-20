@@ -1,8 +1,9 @@
 //! MyPixelGuard desktop shell. Everything here is a thin layer over `mpg-core`: commands receive plain
 //! JSON from the UI, run the heavy work on a worker thread, and send results (or progress events) back.
-//! Nothing in this app opens a network connection.
+//! The only network connections are in `services.rs`: an update check, opt-in usage stats and feedback.
 
 mod ocr;
+mod services;
 
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
@@ -455,6 +456,9 @@ pub fn run() {
             redact_scan,
             write_text_file,
             built_in_recipes,
+            services::service_update_manifest,
+            services::service_send_stats,
+            services::service_send_feedback,
         ])
         .run(tauri::generate_context!())
         .unwrap_or_else(|e| report_fatal(&e.to_string()));
